@@ -1,3 +1,4 @@
+
 "use client";
 import type { ReactNode } from 'react';
 import AdminSidebar from '@/components/layout/AdminSidebar';
@@ -17,14 +18,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     if (!loading) {
       if (!currentUser) {
         router.push('/login?redirect=/admin');
-      } else if (currentUser.email !== ADMIN_EMAIL) {
+      } else if (currentUser.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
         // This is a simple check. For production, use custom claims or a more robust role system.
         router.push('/'); 
       }
     }
   }, [currentUser, loading, router]);
 
-  if (loading || !currentUser || currentUser.email !== ADMIN_EMAIL) {
+  if (loading || !currentUser || (currentUser && currentUser.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase())) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
