@@ -1,29 +1,43 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
     // Products collection
-    // Allow anyone to read products
-    // Allow only authenticated admins (admin@banglashop.com) to write (create, update, delete) products
+    // Anyone can read products.
+    // Only admin can create, update, or delete products.
     match /products/{productId} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.token.email == 'admin@banglashop.com';
+      allow create, update, delete: if request.auth != null && request.auth.token.email == 'admin@banglashop.com';
     }
 
-    // Example for user-specific data in the future (e.g., user profiles, individual orders)
-    // match /users/{userId}/{document=**} {
-    //   allow read, write: if request.auth != null && request.auth.uid == userId;
-    // }
+    // Users collection
+    // Authenticated users can create their own user document (e.g., upon registration).
+    // Users can read and update their own document.
+    // Admin can read any user document.
+    match /users/{userId} {
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && (request.auth.uid == userId || request.auth.token.email == 'admin@banglashop.com');
+      allow update: if request.auth != null && request.auth.uid == userId;
+      // Deletion of user documents via client-side rules is generally discouraged.
+      // User account deletion should be handled via Firebase Auth and backend functions.
+    }
 
-    // Example for orders collection in the future
-    // match /orders/{orderId} {
-    //   // Allow authenticated users to create their own orders
-    //   allow create: if request.auth != null;
-    //   // Allow users to read their own orders, and admins to read any order
-    //   allow read: if request.auth != null && (request.auth.uid == resource.data.userId || request.auth.token.email == 'admin@banglashop.com');
-    //   // Allow only admins to update/delete orders (e.g., change status)
-    //   allow update, delete: if request.auth != null && request.auth.token.email == 'admin@banglashop.com';
-    // }
+    // Orders collection
+    // Authenticated users can create their own orders (ensure userId in document matches auth.uid).
+    // Users can read their own orders.
+    // Admin can read all orders and update/delete them (e.g., for status changes).
+    match /orders/{orderId} {
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null && (resource.data.userId == request.auth.uid || request.auth.token.email == 'admin@banglashop.com');
+      allow update, delete: if request.auth != null && request.auth.token.email == 'admin@banglashop.com';
+    }
+
+    // --- DEFAULT SECURITY ---
+    // Deny read/write access to any other collections/documents by default.
+    // This is a good security practice. Add specific rules for new collections above this block.
+    match /{document=**} {
+      allow read, write: if false;
+    }
   }
 }
