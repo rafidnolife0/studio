@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,7 +19,7 @@ import type { Product } from "@/lib/types";
 import { useState, useEffect } from "react";
 import { storage, db } from "@/lib/firebase";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
-import { collection, addDoc, doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, doc, updateDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -34,6 +35,7 @@ const formSchema = z.object({
   price: z.coerce.number().min(0, { message: "মূল্য ০ বা তার বেশি হতে হবে।" }),
   category: z.string().optional(),
   image: z.any().optional(),
+  dataAihint: z.string().optional(),
 });
 
 export default function ProductForm({ initialData }: ProductFormProps) {
@@ -51,6 +53,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
       price: initialData?.price || 0,
       category: initialData?.category || "",
       image: undefined,
+      dataAihint: initialData?.dataAihint || "",
     },
   });
   
@@ -62,6 +65,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
             price: initialData.price,
             category: initialData.category || "",
             image: undefined, // Reset image file input
+            dataAihint: initialData.dataAihint || "",
         });
         setImagePreview(initialData.imageUrl);
     }
@@ -99,27 +103,40 @@ export default function ProductForm({ initialData }: ProductFormProps) {
             toast({ title: "ত্রুটি!", description: "ছবি আপলোড ব্যর্থ হয়েছে।", variant: "destructive" });
             setLoading(false);
             reject(error);
+            return; // Stop execution here
           },
           async () => {
-            imageUrl = await getDownloadURL(uploadTask.snapshot.ref);
-            resolve();
+            try {
+              imageUrl = await getDownloadURL(uploadTask.snapshot.ref);
+              resolve();
+            } catch (getUrlError) {
+              console.error("Getting download URL failed:", getUrlError);
+              toast({ title: "ত্রুটি!", description: "ছবি আপলোডের পর URL পেতে সমস্যা হয়েছে।", variant: "destructive" });
+              setLoading(false);
+              reject(getUrlError);
+            }
           }
         );
       });
-    } else if (!initialData?.imageUrl && !values.image) {
-        toast({ title: "ত্রুটি!", description: "অনুগ্রহ করে একটি ছবি নির্বাচন করুন।", variant: "destructive" });
+      // If there was an error during upload, setLoading(false) was already called, so we should exit.
+      if (!loading && uploadProgress !== null && uploadProgress < 100) return;
+
+
+    } else if (!initialData && !values.image) { // Only enforce image for new products
+        toast({ title: "ত্রুটি!", description: "নতুন পণ্যের জন্য অনুগ্রহ করে একটি ছবি নির্বাচন করুন।", variant: "destructive" });
         setLoading(false);
         return;
     }
 
 
-    const productData = {
+    const productData: Partial<Product> & {updatedAt: Timestamp, createdAt?: Timestamp} = {
       name: values.name,
       description: values.description,
       price: values.price,
       category: values.category || "",
       imageUrl: imageUrl,
-      updatedAt: serverTimestamp(),
+      dataAihint: values.dataAihint || "product item", // Default AI hint
+      updatedAt: serverTimestamp() as Timestamp,
     };
 
     try {
@@ -130,11 +147,12 @@ export default function ProductForm({ initialData }: ProductFormProps) {
         toast({ title: "সফল!", description: "পণ্য সফলভাবে আপডেট করা হয়েছে।" });
       } else {
         // Add new product
-        await addDoc(collection(db, "products"), { ...productData, createdAt: serverTimestamp() });
+        productData.createdAt = serverTimestamp() as Timestamp;
+        await addDoc(collection(db, "products"), productData);
         toast({ title: "সফল!", description: "পণ্য সফলভাবে যোগ করা হয়েছে।" });
       }
       router.push("/admin/products");
-      router.refresh(); // to reflect changes in the product list page
+      router.refresh(); 
     } catch (error) {
       console.error("Error saving product:", error);
       toast({ title: "ত্রুটি!", description: "পণ্য সংরক্ষণ করতে সমস্যা হয়েছে।", variant: "destructive" });
@@ -176,7 +194,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
             render={({ field }) => (
                 <FormItem>
                 <FormLabel>মূল্য (৳)</FormLabel>
-                <FormControl><Input type="number" placeholder="যেমনঃ ১২০০" {...field} /></FormControl>
+                <FormControl><Input type="number" step="any" placeholder="যেমনঃ ১২০০" {...field} /></FormControl>
                 <FormMessage />
                 </FormItem>
             )}
@@ -193,14 +211,31 @@ export default function ProductForm({ initialData }: ProductFormProps) {
             )}
             />
         </div>
+         <FormField
+          control={form.control}
+          name="dataAihint"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>ছবির জন্য AI Hint (ঐচ্ছিক, ইংরেজি, ১-২ শব্দ)</FormLabel>
+              <FormControl><Input placeholder="যেমন: product fashion" {...field} /></FormControl>
+              <FormMessage />
+              <p className="text-xs text-muted-foreground">প্লেসহোল্ডার ছবির জন্য Unsplash থেকে ছবি খুঁজতে এটি ব্যবহৃত হতে পারে। যেমনঃ `tshirt fashion`</p>
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="image"
-          render={({ field }) => (
+          render={({ field }) => ( // field is not directly used for value, but for onChange and ref
             <FormItem>
               <FormLabel>পণ্যের ছবি</FormLabel>
               <FormControl>
-                <Input type="file" accept="image/*" onChange={handleImageChange} className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"/>
+                <Input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleImageChange} // use our handler
+                    className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -208,7 +243,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
         />
         {imagePreview && (
           <div className="w-48 h-48 relative border rounded-md overflow-hidden">
-            <Image src={imagePreview} alt="পণ্যের ছবি প্রিভিউ" layout="fill" objectFit="cover" />
+            <Image src={imagePreview} alt="পণ্যের ছবি প্রিভিউ" layout="fill" objectFit="cover" data-ai-hint="product preview"/>
           </div>
         )}
         {uploadProgress !== null && (
