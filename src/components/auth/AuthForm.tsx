@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -81,13 +82,44 @@ export default function AuthForm({ isRegister = false }: AuthFormProps) {
       } else {
         await signInWithEmailAndPassword(auth, values.email, values.password);
         toast({ title: "স্বাগতম!", description: "সফলভাবে লগইন করেছেন।" });
-        router.push("/");
+        const searchParams = new URLSearchParams(window.location.search);
+        const redirectUrl = searchParams.get('redirect') || '/';
+        router.push(redirectUrl);
       }
     } catch (err: any) {
-      setError(err.message === "Firebase: Error (auth/email-already-in-use)." ? "এই ইমেইল দিয়ে ইতিমধ্যে অ্যাকাউন্ট খোলা হয়েছে।" : 
-             err.message === "Firebase: Error (auth/invalid-credential)." ? "ইমেইল অথবা পাসওয়ার্ড সঠিক নয়।" : 
-             "একটি সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।");
-      console.error(err);
+      let errorMessage = "একটি অপ্রত্যাশিত সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।";
+      if (err.code) {
+        switch (err.code) {
+          case "auth/email-already-in-use":
+            errorMessage = "এই ইমেইল দিয়ে ইতিমধ্যে অ্যাকাউন্ট খোলা হয়েছে।";
+            break;
+          case "auth/invalid-credential":
+          case "auth/wrong-password": // Legacy, but good to keep
+          case "auth/user-not-found": // Legacy, but good to keep for email field in login
+          case "auth/invalid-email": // For email format issues during login/signup
+            errorMessage = "আপনার দেওয়া ইমেইল অথবা পাসওয়ার্ড সঠিক নয়।";
+            break;
+          case "auth/user-disabled":
+            errorMessage = "আপনার অ্যাকাউন্টটি নিষ্ক্রিয় করা হয়েছে।";
+            break;
+          case "auth/too-many-requests":
+            errorMessage = "অনেকবার চেষ্টা করা হয়েছে। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।";
+            break;
+          case "auth/network-request-failed":
+            errorMessage = "নেটওয়ার্ক সমস্যা। আপনার ইন্টারনেট সংযোগ পরীক্ষা করুন।";
+            break;
+          default:
+            console.error("Firebase Auth Error Code:", err.code, "Message:", err.message);
+            // For other Firebase errors, err.message might be more user-friendly than a generic one.
+            // However, Firebase messages can be verbose or not localized.
+            // Falling back to the generic message for unhandled specific codes.
+            break; 
+        }
+      } else {
+        // Non-Firebase error or error without a code
+        console.error("Auth Error:", err);
+      }
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -172,3 +204,5 @@ export default function AuthForm({ isRegister = false }: AuthFormProps) {
     </Card>
   );
 }
+
+    
