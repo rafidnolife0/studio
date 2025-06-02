@@ -25,28 +25,42 @@ interface AuthFormProps {
   isRegister?: boolean;
 }
 
-const formSchema = z.object({
-  name: z.string().optional(),
+// Define the base schema
+const baseSchema = z.object({
+  name: z.string().optional(), // Name is optional for login, required for register
   email: z.string().email({ message: "সঠিক ইমেইল প্রদান করুন।" }),
   password: z.string().min(6, { message: "পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।" }),
-  confirmPassword: z.string().optional(),
-}).refine((data) => {
-  if (data.name !== undefined) { // This implies it's a registration form
-    return data.password === data.confirmPassword;
-  }
-  return true;
-}, {
-  message: "পাসওয়ার্ড দুটি মিলেনি।",
-  path: ["confirmPassword"],
-}).refine((data) => {
-    if (data.name !== undefined) { // This implies it's a registration form
-        return !!data.name && data.name.length >= 3;
-    }
-    return true;
-}, {
-    message: "নাম কমপক্ষে ৩ অক্ষরের হতে হবে।",
-    path: ["name"],
+  confirmPassword: z.string().optional(), // ConfirmPassword is optional for login
 });
+
+// Function to create schema based on whether it's registration or login
+const createAuthFormSchema = (isRegister: boolean) => {
+  return baseSchema.superRefine((data, ctx) => {
+    if (isRegister) {
+      if (!data.name || data.name.trim().length < 3) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "নাম কমপক্ষে ৩ অক্ষরের হতে হবে।",
+          path: ["name"],
+        });
+      }
+      if (data.password !== data.confirmPassword) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "পাসওয়ার্ড দুটি মিলেনি।",
+          path: ["confirmPassword"],
+        });
+      }
+      if (!data.confirmPassword || data.confirmPassword.length === 0) {
+         ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "অনুগ্রহ করে পাসওয়ার্ড নিশ্চিত করুন।",
+          path: ["confirmPassword"],
+        });
+      }
+    }
+  });
+};
 
 
 export default function AuthForm({ isRegister = false }: AuthFormProps) {
@@ -54,6 +68,9 @@ export default function AuthForm({ isRegister = false }: AuthFormProps) {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
+
+  // Create the schema based on the isRegister prop
+  const formSchema = createAuthFormSchema(isRegister);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -70,11 +87,12 @@ export default function AuthForm({ isRegister = false }: AuthFormProps) {
     setError(null);
     try {
       if (isRegister) {
-        if (!values.name) {
-            setError("অনুগ্রহ করে আপনার নাম লিখুন।");
-            setLoading(false);
-            return;
-        }
+        // Validation for name specifically for registration is now handled by superRefine
+        // if (!values.name) { // This check is now part of the schema logic
+        //     setError("অনুগ্রহ করে আপনার নাম লিখুন।");
+        //     setLoading(false);
+        //     return;
+        // }
         const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
         await updateProfile(userCredential.user, { displayName: values.name });
         toast({ title: "সফল!", description: "আপনার অ্যাকাউন্ট তৈরি হয়েছে। অনুগ্রহ করে লগইন করুন।" });
@@ -82,7 +100,7 @@ export default function AuthForm({ isRegister = false }: AuthFormProps) {
       } else {
         await signInWithEmailAndPassword(auth, values.email, values.password);
         toast({ title: "স্বাগতম!", description: "সফলভাবে লগইন করেছেন।" });
-        const searchParams = new URLSearchParams(window.location.search);
+        const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
         const redirectUrl = searchParams.get('redirect') || '/';
         router.push(redirectUrl);
       }
@@ -94,9 +112,9 @@ export default function AuthForm({ isRegister = false }: AuthFormProps) {
             errorMessage = "এই ইমেইল দিয়ে ইতিমধ্যে অ্যাকাউন্ট খোলা হয়েছে।";
             break;
           case "auth/invalid-credential":
-          case "auth/wrong-password": // Legacy, but good to keep
-          case "auth/user-not-found": // Legacy, but good to keep for email field in login
-          case "auth/invalid-email": // For email format issues during login/signup
+          case "auth/wrong-password": 
+          case "auth/user-not-found": 
+          case "auth/invalid-email": 
             errorMessage = "আপনার দেওয়া ইমেইল অথবা পাসওয়ার্ড সঠিক নয়।";
             break;
           case "auth/user-disabled":
@@ -110,16 +128,13 @@ export default function AuthForm({ isRegister = false }: AuthFormProps) {
             break;
           default:
             console.error("Firebase Auth Error Code:", err.code, "Message:", err.message);
-            // For other Firebase errors, err.message might be more user-friendly than a generic one.
-            // However, Firebase messages can be verbose or not localized.
-            // Falling back to the generic message for unhandled specific codes.
             break; 
         }
       } else {
-        // Non-Firebase error or error without a code
         console.error("Auth Error:", err);
       }
       setError(errorMessage);
+      toast({ title: "ত্রুটি!", description: errorMessage, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -194,7 +209,8 @@ export default function AuthForm({ isRegister = false }: AuthFormProps) {
                 )}
               />
             )}
-            {error && <p className="text-sm font-medium text-destructive">{error}</p>}
+            {/* The error state is now primarily handled by toast for better UX, but can be kept for critical non-field errors if needed */}
+            {error && !form.formState.isValid && <p className="text-sm font-medium text-destructive">{error}</p>}
             <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={loading}>
               {loading ? (isRegister ? "তৈরি হচ্ছে..." : "লগইন হচ্ছে...") : (isRegister ? "অ্যাকাউন্ট তৈরি করুন" : "লগইন")}
             </Button>
@@ -204,5 +220,3 @@ export default function AuthForm({ isRegister = false }: AuthFormProps) {
     </Card>
   );
 }
-
-    
