@@ -1,16 +1,18 @@
+
 import { initializeApp, getApp, getApps } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCbotlNhilPElmdPs_UUKfIwJLipHdzPzY",
-  authDomain: "bazar-bangla-kdllz.firebaseapp.com",
-  databaseURL: "https://bazar-bangla-kdllz-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "bazar-bangla-kdllz",
-  storageBucket: "bazar-bangla-kdllz.appspot.com", // Corrected from 'firebasestorage.app' if it was a typo
-  messagingSenderId: "689762581635",
-  appId: "1:689762581635:web:f06f5e43d34df83f23afb6"
+  apiKey: "AIzaSyCJ9mSkFK08vrtoXKUnjIOFIolN2qXEtug",
+  authDomain: "bangla-shop-3f8a6.firebaseapp.com",
+  databaseURL: "https://bangla-shop-3f8a6-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "bangla-shop-3f8a6",
+  storageBucket: "bangla-shop-3f8a6.appspot.com", // Corrected storageBucket URL
+  messagingSenderId: "1073532824559",
+  appId: "1:1073532824559:web:10b38242196a5a3597241a",
+  measurementId: "G-WDGKSTSLVH"
 };
 
 let app;
@@ -22,6 +24,6 @@ if (!getApps().length) {
 
 const auth = getAuth(app);
 const db = getFirestore(app);
-const storage = getStorage(app);
+const storage = getStorage(app); // Initialize storage with the corrected config
 
 export { app, auth, db, storage };
