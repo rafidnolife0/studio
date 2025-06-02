@@ -1,8 +1,9 @@
+
 "use client";
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Package, Users, Settings, LogOut } from 'lucide-react';
+import { Home, Package, Users, Settings, LogOut, ReceiptText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -10,8 +11,8 @@ import { cn } from '@/lib/utils';
 const navItems = [
   { href: '/admin', label: 'ড্যাশবোর্ড', icon: Home },
   { href: '/admin/products', label: 'পণ্যসমূহ', icon: Package },
-  // { href: '/admin/orders', label: 'অর্ডারসমূহ', icon: ShoppingCart },
-  // { href: '/admin/users', label: 'ব্যবহারকারীগণ', icon: Users },
+  { href: '/admin/orders', label: 'অর্ডারসমূহ', icon: ReceiptText },
+  { href: '/admin/users', label: 'ব্যবহারকারীগণ', icon: Users },
   // { href: '/admin/settings', label: 'সেটিংস', icon: Settings },
 ];
 
