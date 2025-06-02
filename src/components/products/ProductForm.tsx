@@ -64,7 +64,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
             description: initialData.description,
             price: initialData.price,
             category: initialData.category || "",
-            image: undefined, // Reset image file input
+            image: undefined, 
             dataAihint: initialData.dataAihint || "",
         });
         setImagePreview(initialData.imageUrl);
@@ -91,38 +91,38 @@ export default function ProductForm({ initialData }: ProductFormProps) {
       const storageRef = ref(storage, `products/${Date.now()}_${file.name}`);
       const uploadTask = uploadBytesResumable(storageRef, file);
 
-      await new Promise<void>((resolve, reject) => {
-        uploadTask.on(
-          "state_changed",
-          (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            setUploadProgress(progress);
-          },
-          (error) => {
-            console.error("Upload failed:", error);
-            toast({ title: "ত্রুটি!", description: "ছবি আপলোড ব্যর্থ হয়েছে।", variant: "destructive" });
-            setLoading(false);
-            reject(error);
-            return; // Stop execution here
-          },
-          async () => {
-            try {
-              imageUrl = await getDownloadURL(uploadTask.snapshot.ref);
-              resolve();
-            } catch (getUrlError) {
-              console.error("Getting download URL failed:", getUrlError);
-              toast({ title: "ত্রুটি!", description: "ছবি আপলোডের পর URL পেতে সমস্যা হয়েছে।", variant: "destructive" });
+      try {
+        await new Promise<void>((resolve, reject) => {
+          uploadTask.on(
+            "state_changed",
+            (snapshot) => {
+              const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+              setUploadProgress(progress);
+            },
+            (error) => {
+              console.error("Upload failed:", error);
+              toast({ title: "ত্রুটি!", description: `ছবি আপলোড ব্যর্থ হয়েছে: ${error.message} (Code: ${error.code})`, variant: "destructive" });
               setLoading(false);
-              reject(getUrlError);
+              reject(error);
+            },
+            async () => {
+              try {
+                imageUrl = await getDownloadURL(uploadTask.snapshot.ref);
+                resolve();
+              } catch (getUrlError: any) {
+                console.error("Getting download URL failed:", getUrlError);
+                toast({ title: "ত্রুটি!", description: `ছবি URL পেতে সমস্যা: ${getUrlError.message} (Code: ${getUrlError.code})`, variant: "destructive" });
+                setLoading(false);
+                reject(getUrlError);
+              }
             }
-          }
-        );
-      });
-      // If there was an error during upload, setLoading(false) was already called, so we should exit.
-      if (!loading && uploadProgress !== null && uploadProgress < 100) return;
-
-
-    } else if (!initialData && !values.image) { // Only enforce image for new products
+          );
+        });
+      } catch (uploadError) {
+        // Error is already toasted and logged from the promise reject/catch
+        return; // Stop execution if upload failed
+      }
+    } else if (!initialData && !values.image) { 
         toast({ title: "ত্রুটি!", description: "নতুন পণ্যের জন্য অনুগ্রহ করে একটি ছবি নির্বাচন করুন।", variant: "destructive" });
         setLoading(false);
         return;
@@ -135,27 +135,29 @@ export default function ProductForm({ initialData }: ProductFormProps) {
       price: values.price,
       category: values.category || "",
       imageUrl: imageUrl,
-      dataAihint: values.dataAihint || "product item", // Default AI hint
+      dataAihint: values.dataAihint || "product item",
       updatedAt: serverTimestamp() as Timestamp,
     };
 
     try {
       if (initialData?.id) {
-        // Update existing product
         const productRef = doc(db, "products", initialData.id);
         await updateDoc(productRef, productData);
         toast({ title: "সফল!", description: "পণ্য সফলভাবে আপডেট করা হয়েছে।" });
       } else {
-        // Add new product
         productData.createdAt = serverTimestamp() as Timestamp;
         await addDoc(collection(db, "products"), productData);
         toast({ title: "সফল!", description: "পণ্য সফলভাবে যোগ করা হয়েছে।" });
       }
       router.push("/admin/products");
       router.refresh(); 
-    } catch (error) {
-      console.error("Error saving product:", error);
-      toast({ title: "ত্রুটি!", description: "পণ্য সংরক্ষণ করতে সমস্যা হয়েছে।", variant: "destructive" });
+    } catch (error: any) {
+      console.error("Error saving product to Firestore:", error);
+      toast({ 
+        title: "Firestore ত্রুটি!", 
+        description: `পণ্য সংরক্ষণ করতে সমস্যা হয়েছে: ${error.message} (Code: ${error.code || 'N/A'})`, 
+        variant: "destructive" 
+      });
     } finally {
       setLoading(false);
       setUploadProgress(null);
@@ -226,14 +228,14 @@ export default function ProductForm({ initialData }: ProductFormProps) {
         <FormField
           control={form.control}
           name="image"
-          render={({ field }) => ( // field is not directly used for value, but for onChange and ref
+          render={({ field }) => ( 
             <FormItem>
               <FormLabel>পণ্যের ছবি</FormLabel>
               <FormControl>
                 <Input 
                     type="file" 
                     accept="image/*" 
-                    onChange={handleImageChange} // use our handler
+                    onChange={handleImageChange} 
                     className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
                 />
               </FormControl>
@@ -260,3 +262,5 @@ export default function ProductForm({ initialData }: ProductFormProps) {
     </Form>
   );
 }
+
+    
