@@ -9,50 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, ReceiptText, PackageSearch } from "lucide-react";
 import type { Order, OrderStatus } from "@/lib/types";
 import { format } from 'date-fns';
-import { bn } from 'date-fns/locale'; // For Bengali date formatting
-import { cn } from '@/lib/utils'; // Added import for cn
-
-// Mock data - replace with API call to Firebase Firestore
-const mockOrdersData: Order[] = [
-  {
-    id: 'order1', orderNumber: 'BS-74321', userId: 'userA', customerName: 'মোঃ আরিফ হোসেন', customerEmail: 'arif@example.com',
-    items: [{ productId: '1', name: 'সুতির পাঞ্জাবি', quantity: 1, price: 1200, imageUrl: 'https://placehold.co/50x50.png' }],
-    totalAmount: 1200, status: 'Pending', orderDate: new Date(2024, 4, 15, 10, 30).toISOString(),
-    shippingAddress: { name: 'মোঃ আরিফ হোসেন', phone: '01711111111', address: 'বাড়ি ১২, রোড ৩, ধানমন্ডি', division: 'ঢাকা', district: 'ঢাকা', thana: 'ধানমন্ডি' },
-    paymentMethod: 'Cash on Delivery'
-  },
-  {
-    id: 'order2', orderNumber: 'BS-74322', userId: 'userB', customerName: 'ফারজানা ইসলাম', customerEmail: 'farzana@example.com',
-    items: [
-        { productId: '2', name: 'জামদানি শাড়ি', quantity: 1, price: 5500, imageUrl: 'https://placehold.co/50x50.png' },
-        { productId: '5', name: 'রূপার গহনা সেট', quantity: 1, price: 3500, imageUrl: 'https://placehold.co/50x50.png' }
-    ],
-    totalAmount: 9000, status: 'Processing', orderDate: new Date(2024, 4, 16, 14, 0).toISOString(),
-    shippingAddress: { name: 'ফারজানা ইসলাম', phone: '01822222222', address: 'ফ্ল্যাট ৫বি, বনানী', division: 'ঢাকা', district: 'ঢাকা', thana: 'বনানী' },
-    paymentMethod: 'Cash on Delivery'
-  },
-  {
-    id: 'order3', orderNumber: 'BS-74323', userId: 'userC', customerName: 'সাকিব আল হাসান', customerEmail: 'sakib@example.com',
-    items: [{ productId: '3', name: 'চórz বাংলা টি-শার্ট', quantity: 2, price: 450, imageUrl: 'https://placehold.co/50x50.png' }],
-    totalAmount: 900, status: 'Shipped', orderDate: new Date(2024, 4, 14, 9, 15).toISOString(),
-    shippingAddress: { name: 'সাকিব আল হাসান', phone: '01933333333', address: 'মিরপুর ডিওএইচএস', division: 'ঢাকা', district: 'ঢাকা', thana: 'মিরপুর' },
-    paymentMethod: 'Online Payment', transactionId: 'txn_123abc'
-  },
-    {
-    id: 'order4', orderNumber: 'BS-74324', userId: 'userD', customerName: 'নুসরাত জাহান', customerEmail: 'nusrat@example.com',
-    items: [{ productId: '4', name: 'নকশি কাঁথা', quantity: 1, price: 2200, imageUrl: 'https://placehold.co/50x50.png' }],
-    totalAmount: 2200, status: 'Delivered', orderDate: new Date(2024, 4, 10, 17, 45).toISOString(),
-    shippingAddress: { name: 'নুসরাত জাহান', phone: '01544444444', address: 'বাসা ১০, সেক্টর ৭, উত্তরা', division: 'ঢাকা', district: 'ঢাকা', thana: 'উত্তরা পশ্চিম' },
-    paymentMethod: 'Cash on Delivery'
-  },
-  {
-    id: 'order5', orderNumber: 'BS-74325', userId: 'userE', customerName: 'তামিম ইকবাল', customerEmail: 'tamim@example.com',
-    items: [{ productId: '6', name: 'চামড়ার স্যান্ডেল', quantity: 1, price: 900, imageUrl: 'https://placehold.co/50x50.png' }],
-    totalAmount: 900, status: 'Cancelled', orderDate: new Date(2024, 4, 12, 11, 20).toISOString(),
-    shippingAddress: { name: 'তামিম ইকবাল', phone: '01655555555', address: 'বাসা ৫, রোড ২, গুলশান', division: 'ঢাকা', district: 'ঢাকা', thana: 'গুলশান' },
-    paymentMethod: 'Cash on Delivery'
-  },
-];
+import { bn } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, Timestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { useToast } from "@/hooks/use-toast";
 
 const orderStatusMap: Record<OrderStatus, string> = {
   Pending: 'অপেক্ষারত',
@@ -74,43 +35,48 @@ const orderStatusColors: Record<OrderStatus, string> = {
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
-    // Simulate fetching data
     setLoading(true);
-    setTimeout(() => {
-      setOrders(mockOrdersData);
-      setLoading(false);
-    }, 1000);
-    // In a real app, fetch orders from Firebase:
-    // const fetchOrders = async () => {
-    //   const ordersCollectionRef = collection(db, "orders");
-    //   const q = query(ordersCollectionRef, orderBy("orderDate", "desc"));
-    //   const unsubscribe = onSnapshot(q, (snapshot) => {
-    //     const ordersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
-    //     setOrders(ordersData);
-    //     setLoading(false);
-    //   }, (error) => {
-    //     console.error("Error fetching orders: ", error);
-    //     toast({ title: "ত্রুটি!", description: "অর্ডার আনতে সমস্যা হয়েছে।", variant: "destructive" });
-    //     setLoading(false);
-    //   });
-    //   return unsubscribe;
-    // };
-    // fetchOrders();
-  }, []);
+    const ordersCollectionRef = collection(db, "orders");
+    const q = query(ordersCollectionRef, orderBy("orderDate", "desc"));
 
-  const handleStatusChange = (orderId: string, newStatus: OrderStatus) => {
-    setOrders(prevOrders =>
-      prevOrders.map(order =>
-        order.id === orderId ? { ...order, status: newStatus } : order
-      )
-    );
-    // In a real app, update status in Firebase:
-    // const orderRef = doc(db, "orders", orderId);
-    // await updateDoc(orderRef, { status: newStatus });
-    // toast({ title: "সফল!", description: `অর্ডারের স্ট্যাটাস "${orderStatusMap[newStatus]}" করা হয়েছে।` });
-    console.log(`Order ${orderId} status changed to ${newStatus}`);
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const ordersData = snapshot.docs.map(doc => {
+        const data = doc.data();
+        // Convert Firestore Timestamp to Date object then to ISO string if it's a Timestamp
+        let orderDateStr = data.orderDate;
+        if (data.orderDate instanceof Timestamp) {
+          orderDateStr = data.orderDate.toDate().toISOString();
+        }
+        return { 
+          id: doc.id, 
+          ...data,
+          orderDate: orderDateStr, // Ensure orderDate is a string
+        } as Order;
+      });
+      setOrders(ordersData);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching orders: ", error);
+      toast({ title: "ত্রুটি!", description: "অর্ডার আনতে সমস্যা হয়েছে।", variant: "destructive" });
+      setLoading(false);
+    });
+
+    return () => unsubscribe(); // Cleanup listener on component unmount
+  }, [toast]);
+
+  const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
+    try {
+      const orderRef = doc(db, "orders", orderId);
+      await updateDoc(orderRef, { status: newStatus });
+      toast({ title: "সফল!", description: `অর্ডারের স্ট্যাটাস "${orderStatusMap[newStatus]}" করা হয়েছে।` });
+      // Real-time listener will update the local state automatically
+    } catch (error) {
+        console.error("Error updating order status: ", error);
+        toast({ title: "ত্রুটি!", description: "অর্ডারের স্ট্যাটাস আপডেট করতে সমস্যা হয়েছে।", variant: "destructive" });
+    }
   };
 
   return (
@@ -155,7 +121,7 @@ export default function AdminOrdersPage() {
                     <div>{order.customerName}</div>
                     <div className="text-xs text-muted-foreground">{order.customerEmail}</div>
                   </TableCell>
-                  <TableCell>{format(new Date(order.orderDate), 'dd MMM, yyyy, hh:mm a', { locale: bn })}</TableCell>
+                  <TableCell>{order.orderDate ? format(new Date(order.orderDate), 'dd MMM, yyyy, hh:mm a', { locale: bn }) : 'N/A'}</TableCell>
                   <TableCell className="text-right font-medium">{order.totalAmount.toLocaleString('bn-BD')}</TableCell>
                   <TableCell className="text-center">
                     <Badge variant="outline" className={cn("border font-semibold", orderStatusColors[order.status])}>

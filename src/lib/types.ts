@@ -1,4 +1,6 @@
 
+import type { Timestamp } from 'firebase/firestore';
+
 export interface Product {
   id: string;
   name: string; // Bangla
@@ -7,6 +9,8 @@ export interface Product {
   imageUrl: string;
   category?: string; // Bangla
   dataAihint?: string;
+  createdAt?: Timestamp | string; // Allow string for client-side new Date().toISOString() before Firestore conversion
+  updatedAt?: Timestamp | string;
 }
 
 export interface CartItem extends Product {
@@ -17,7 +21,7 @@ export interface User {
   uid: string;
   email: string | null;
   displayName?: string | null;
-  registrationDate?: string; // ISO string or Date object, for admin display
+  registrationDate?: Timestamp | string; // ISO string or Date object, or Firestore Timestamp
 }
 
 export type Thana = { id: string; name: string };
@@ -53,7 +57,7 @@ export interface Order {
   items: OrderItem[];
   totalAmount: number;
   status: OrderStatus;
-  orderDate: string; // ISO string representation of the date
+  orderDate: Timestamp | string; // Firestore Timestamp or ISO string representation of the date
   shippingAddress: ShippingAddress;
   paymentMethod?: string; // e.g., 'Cash on Delivery'
   transactionId?: string; // If online payment
