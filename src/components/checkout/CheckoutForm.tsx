@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,11 +23,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { divisions } from "@/lib/bangladesh-geo-data";
-import type { District, Thana } from "@/lib/types";
+import type { District, Thana, Order, OrderItem } from "@/lib/types";
 import { useState } from "react";
 import { useCart } from "@/contexts/CartContext";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from '@/contexts/AuthContext';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const formSchema = z.object({
   name: z.string().min(3, { message: "নাম কমপক্ষে ৩ অক্ষরের হতে হবে।" }),
@@ -45,7 +49,8 @@ export default function CheckoutForm() {
   const [thanas, setThanas] = useState<Thana[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const { cartTotal, clearCart, itemCount } = useCart();
+  const { cartItems, cartTotal, clearCart, itemCount } = useCart();
+  const { currentUser } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -75,17 +80,59 @@ export default function CheckoutForm() {
         toast({ title: "ত্রুটি", description: "আপনার কার্ট খালি। অর্ডার করার জন্য পণ্য যোগ করুন।", variant: "destructive" });
         return;
     }
+    if (!currentUser) {
+        toast({ title: "ত্রুটি", description: "অর্ডার করার জন্য অনুগ্রহ করে লগইন করুন।", variant: "destructive" });
+        router.push('/login?redirect=/checkout');
+        return;
+    }
+
     setLoading(true);
-    console.log("Checkout Data:", { ...values, totalAmount: cartTotal });
-    // Here, you would typically send this data to your backend (e.g., Firebase Functions)
-    // to create an order in Firestore, process payment, etc.
-    // For this scaffold, we'll simulate success.
-    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API call
-    
-    toast({ title: "সফল!", description: "আপনার অর্ডার সফলভাবে প্লেস করা হয়েছে।" });
-    clearCart();
-    router.push("/order-success"); // Redirect to an order success page (to be created)
-    setLoading(false);
+
+    const orderItems: OrderItem[] = cartItems.map(item => ({
+      productId: item.id,
+      name: item.name,
+      quantity: item.quantity,
+      price: item.price,
+      imageUrl: item.imageUrl || "",
+    }));
+
+    const divisionName = divisions.find(d => d.id === values.division)?.name || values.division;
+    const districtName = districts.find(d => d.id === values.district)?.name || values.district;
+    const thanaName = thanas.find(t => t.id === values.thana)?.name || values.thana;
+
+    const orderData: Omit<Order, 'id'> = {
+      orderNumber: `BS-${Date.now().toString().slice(-7)}`,
+      userId: currentUser.uid,
+      customerName: values.name,
+      customerEmail: currentUser.email || 'N/A',
+      items: orderItems,
+      totalAmount: cartTotal,
+      status: 'Pending',
+      orderDate: serverTimestamp(),
+      shippingAddress: {
+        name: values.name,
+        phone: values.phone,
+        address: values.address,
+        division: divisionName,
+        district: districtName,
+        thana: thanaName,
+        notes: values.notes || "",
+      },
+      paymentMethod: 'Cash on Delivery', // Default or allow selection
+    };
+
+    try {
+      const docRef = await addDoc(collection(db, "orders"), orderData);
+      console.log("Order placed with ID: ", docRef.id);
+      toast({ title: "সফল!", description: "আপনার অর্ডার সফলভাবে প্লেস করা হয়েছে।" });
+      clearCart();
+      router.push(`/order-success?orderId=${docRef.id}&orderNumber=${orderData.orderNumber}`);
+    } catch (error) {
+      console.error("Error placing order: ", error);
+      toast({ title: "ত্রুটি!", description: "অর্ডার প্লেস করতে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -97,7 +144,7 @@ export default function CheckoutForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>আপনার নাম</FormLabel>
-              <FormControl><Input placeholder="সম্পূর্ণ নাম" {...field} /></FormControl>
+              <FormControl><Input placeholder="সম্পূর্ণ নাম" {...field} defaultValue={currentUser?.displayName || ""} /></FormControl>
               <FormMessage />
             </FormItem>
           )}

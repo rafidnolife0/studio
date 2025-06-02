@@ -17,7 +17,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useState } from "react";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase"; // Added db
+import { doc, setDoc, serverTimestamp } from "firebase/firestore"; // Added Firestore functions
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 
@@ -27,10 +28,10 @@ interface AuthFormProps {
 
 // Define the base schema
 const baseSchema = z.object({
-  name: z.string().optional(), // Name is optional for login, required for register
+  name: z.string().optional(), 
   email: z.string().email({ message: "সঠিক ইমেইল প্রদান করুন।" }),
   password: z.string().min(6, { message: "পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।" }),
-  confirmPassword: z.string().optional(), // ConfirmPassword is optional for login
+  confirmPassword: z.string().optional(), 
 });
 
 // Function to create schema based on whether it's registration or login
@@ -65,11 +66,10 @@ const createAuthFormSchema = (isRegister: boolean) => {
 
 export default function AuthForm({ isRegister = false }: AuthFormProps) {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null); // Keep for general errors if needed, but toast is primary
   const router = useRouter();
   const { toast } = useToast();
 
-  // Create the schema based on the isRegister prop
   const formSchema = createAuthFormSchema(isRegister);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -87,14 +87,24 @@ export default function AuthForm({ isRegister = false }: AuthFormProps) {
     setError(null);
     try {
       if (isRegister) {
-        // Validation for name specifically for registration is now handled by superRefine
-        // if (!values.name) { // This check is now part of the schema logic
-        //     setError("অনুগ্রহ করে আপনার নাম লিখুন।");
-        //     setLoading(false);
-        //     return;
-        // }
+        if (!values.name) { // This check is still useful before calling Firebase
+            setError("অনুগ্রহ করে আপনার নাম লিখুন।");
+            toast({ title: "ত্রুটি!", description: "অনুগ্রহ করে আপনার নাম লিখুন।", variant: "destructive" });
+            setLoading(false);
+            return;
+        }
         const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
         await updateProfile(userCredential.user, { displayName: values.name });
+
+        // Store user details in Firestore 'users' collection
+        const userDocRef = doc(db, "users", userCredential.user.uid);
+        await setDoc(userDocRef, {
+          uid: userCredential.user.uid,
+          email: userCredential.user.email,
+          displayName: values.name,
+          registrationDate: serverTimestamp(),
+        });
+
         toast({ title: "সফল!", description: "আপনার অ্যাকাউন্ট তৈরি হয়েছে। অনুগ্রহ করে লগইন করুন।" });
         router.push("/login");
       } else {
@@ -127,13 +137,13 @@ export default function AuthForm({ isRegister = false }: AuthFormProps) {
             errorMessage = "নেটওয়ার্ক সমস্যা। আপনার ইন্টারনেট সংযোগ পরীক্ষা করুন।";
             break;
           default:
-            console.error("Firebase Auth Error Code:", err.code, "Message:", err.message);
+            console.error("Firebase Auth Error Code:", err.code, "Message:", err.message); // Log unhandled errors
             break; 
         }
       } else {
-        console.error("Auth Error:", err);
+        console.error("Auth Error:", err); // Log non-Firebase errors
       }
-      setError(errorMessage);
+      setError(errorMessage); // Keep this if you want to display an error message also in the form, apart from toast
       toast({ title: "ত্রুটি!", description: errorMessage, variant: "destructive" });
     } finally {
       setLoading(false);
@@ -209,8 +219,8 @@ export default function AuthForm({ isRegister = false }: AuthFormProps) {
                 )}
               />
             )}
-            {/* The error state is now primarily handled by toast for better UX, but can be kept for critical non-field errors if needed */}
-            {error && !form.formState.isValid && <p className="text-sm font-medium text-destructive">{error}</p>}
+            {/* General error message display, use sparingly as toasts are primary */}
+            {/* {error && <p className="text-sm font-medium text-destructive">{error}</p>} */}
             <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={loading}>
               {loading ? (isRegister ? "তৈরি হচ্ছে..." : "লগইন হচ্ছে...") : (isRegister ? "অ্যাকাউন্ট তৈরি করুন" : "লগইন")}
             </Button>
