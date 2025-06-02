@@ -17,13 +17,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { Product } from "@/lib/types";
 import { useState, useEffect } from "react";
-import { storage, db } from "@/lib/firebase";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { db } from "@/lib/firebase";
 import { collection, addDoc, doc, updateDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Progress } from "@/components/ui/progress";
 
 interface ProductFormProps {
   initialData?: Product | null;
@@ -34,14 +32,13 @@ const formSchema = z.object({
   description: z.string().min(10, { message: "পণ্যের বিবরণ কমপক্ষে ১০ অক্ষরের হতে হবে।" }),
   price: z.coerce.number().min(0, { message: "মূল্য ০ বা তার বেশি হতে হবে।" }),
   category: z.string().optional(),
-  image: z.any().optional(),
+  imageUrl: z.string().url({ message: "সঠিক ছবির URL প্রদান করুন।" }).or(z.literal("")).optional(), // Accepts valid URL or empty string
   dataAihint: z.string().optional(),
 });
 
 export default function ProductForm({ initialData }: ProductFormProps) {
   const [loading, setLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(initialData?.imageUrl || null);
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -52,7 +49,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
       description: initialData?.description || "",
       price: initialData?.price || 0,
       category: initialData?.category || "",
-      image: undefined,
+      imageUrl: initialData?.imageUrl || "",
       dataAihint: initialData?.dataAihint || "",
     },
   });
@@ -64,77 +61,41 @@ export default function ProductForm({ initialData }: ProductFormProps) {
             description: initialData.description,
             price: initialData.price,
             category: initialData.category || "",
-            image: undefined, 
+            imageUrl: initialData.imageUrl || "",
             dataAihint: initialData.dataAihint || "",
         });
         setImagePreview(initialData.imageUrl);
     }
   }, [initialData, form]);
 
-
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setImagePreview(URL.createObjectURL(file));
-      form.setValue("image", file);
+  // Watch imageUrl field for live preview
+  const watchedImageUrl = form.watch("imageUrl");
+  useEffect(() => {
+    if (watchedImageUrl && watchedImageUrl.startsWith('http')) {
+      setImagePreview(watchedImageUrl);
+    } else if (!watchedImageUrl && initialData?.imageUrl) {
+        setImagePreview(initialData.imageUrl);
+    } else if (!watchedImageUrl) {
+        setImagePreview(null);
     }
-  };
+  }, [watchedImageUrl, initialData?.imageUrl]);
+
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true);
-    setUploadProgress(null);
 
-    let imageUrl = initialData?.imageUrl || "";
-
-    if (values.image && values.image instanceof File) {
-      const file = values.image;
-      const storageRef = ref(storage, `products/${Date.now()}_${file.name}`);
-      const uploadTask = uploadBytesResumable(storageRef, file);
-
-      try {
-        await new Promise<void>((resolve, reject) => {
-          uploadTask.on(
-            "state_changed",
-            (snapshot) => {
-              const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-              setUploadProgress(progress);
-            },
-            (error) => {
-              console.error("Upload failed:", error);
-              toast({ title: "ত্রুটি!", description: `ছবি আপলোড ব্যর্থ হয়েছে: ${error.message} (Code: ${error.code})`, variant: "destructive" });
-              setLoading(false);
-              reject(error);
-            },
-            async () => {
-              try {
-                imageUrl = await getDownloadURL(uploadTask.snapshot.ref);
-                resolve();
-              } catch (getUrlError: any) {
-                console.error("Getting download URL failed:", getUrlError);
-                toast({ title: "ত্রুটি!", description: `ছবি URL পেতে সমস্যা: ${getUrlError.message} (Code: ${getUrlError.code})`, variant: "destructive" });
-                setLoading(false);
-                reject(getUrlError);
-              }
-            }
-          );
-        });
-      } catch (uploadError) {
-        // Error is already toasted and logged from the promise reject/catch
-        return; // Stop execution if upload failed
-      }
-    } else if (!initialData && !values.image) { 
-        toast({ title: "ত্রুটি!", description: "নতুন পণ্যের জন্য অনুগ্রহ করে একটি ছবি নির্বাচন করুন।", variant: "destructive" });
+    if (!values.imageUrl && !initialData?.imageUrl) {
+        toast({ title: "ত্রুটি!", description: "অনুগ্রহ করে পণ্যের ছবির একটি URL দিন অথবা নিশ্চিত করুন আগে থেকে একটি ছবি আছে।", variant: "destructive" });
         setLoading(false);
         return;
     }
-
-
+    
     const productData: Partial<Product> & {updatedAt: Timestamp, createdAt?: Timestamp} = {
       name: values.name,
       description: values.description,
       price: values.price,
       category: values.category || "",
-      imageUrl: imageUrl,
+      imageUrl: values.imageUrl || initialData?.imageUrl || "https://placehold.co/400x400.png", // Fallback placeholder
       dataAihint: values.dataAihint || "product item",
       updatedAt: serverTimestamp() as Timestamp,
     };
@@ -153,14 +114,15 @@ export default function ProductForm({ initialData }: ProductFormProps) {
       router.refresh(); 
     } catch (error: any) {
       console.error("Error saving product to Firestore:", error);
+      let firebaseErrorCode = error.code || 'N/A';
+      let firebaseErrorMessage = error.message || 'অজানা ত্রুটি';
       toast({ 
         title: "Firestore ত্রুটি!", 
-        description: `পণ্য সংরক্ষণ করতে সমস্যা হয়েছে: ${error.message} (Code: ${error.code || 'N/A'})`, 
+        description: `পণ্য সংরক্ষণ করতে সমস্যা হয়েছে: ${firebaseErrorMessage} (Code: ${firebaseErrorCode})`, 
         variant: "destructive" 
       });
     } finally {
       setLoading(false);
-      setUploadProgress(null);
     }
   }
 
@@ -213,6 +175,18 @@ export default function ProductForm({ initialData }: ProductFormProps) {
             )}
             />
         </div>
+        <FormField
+          control={form.control}
+          name="imageUrl"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>পণ্যের ছবির URL</FormLabel>
+              <FormControl><Input placeholder="https://example.com/image.jpg" {...field} /></FormControl>
+              <FormMessage />
+              <p className="text-xs text-muted-foreground">আপনার পণ্যের ছবির একটি সরাসরি URL দিন।</p>
+            </FormItem>
+          )}
+        />
          <FormField
           control={form.control}
           name="dataAihint"
@@ -225,34 +199,21 @@ export default function ProductForm({ initialData }: ProductFormProps) {
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="image"
-          render={({ field }) => ( 
-            <FormItem>
-              <FormLabel>পণ্যের ছবি</FormLabel>
-              <FormControl>
-                <Input 
-                    type="file" 
-                    accept="image/*" 
-                    onChange={handleImageChange} 
-                    className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        
         {imagePreview && (
           <div className="w-48 h-48 relative border rounded-md overflow-hidden">
-            <Image src={imagePreview} alt="পণ্যের ছবি প্রিভিউ" layout="fill" objectFit="cover" data-ai-hint="product preview"/>
+            <Image 
+                src={imagePreview} 
+                alt="পণ্যের ছবি প্রিভিউ" 
+                layout="fill" 
+                objectFit="cover" 
+                data-ai-hint="product preview"
+                onError={() => {
+                    // If URL is invalid or image fails to load, clear preview or show placeholder icon
+                    setImagePreview("https://placehold.co/400x400.png?text=Invalid+URL"); 
+                }}
+            />
           </div>
-        )}
-        {uploadProgress !== null && (
-            <div className="space-y-1">
-                <p className="text-sm">আপলোড হচ্ছে: {Math.round(uploadProgress)}%</p>
-                <Progress value={uploadProgress} className="w-full h-2" />
-            </div>
         )}
 
         <Button type="submit" className="bg-primary hover:bg-primary/90" disabled={loading}>
@@ -262,5 +223,3 @@ export default function ProductForm({ initialData }: ProductFormProps) {
     </Form>
   );
 }
-
-    
