@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from 'next/image';
@@ -5,30 +6,75 @@ import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import type { Product } from '@/lib/types';
 import { useCart } from '@/contexts/CartContext';
-import { ShoppingCart, ArrowLeft } from 'lucide-react';
+import { ShoppingCart, ArrowLeft, Loader2, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-
-// Mock data - replace with API call to Firebase
-const mockProducts: Product[] = [
-  { id: '1', name: 'সুতির পাঞ্জাবি', description: 'আরামদায়ক সুতির পাঞ্জাবি, বিভিন্ন রঙ ও সাইজে পাওয়া যায়। এটি ঐতিহ্যবাহী এবং আধুনিকতার এক দারুণ মিশ্রণ। উৎসব এবং সাধারণ পরিধানের জন্য খুবই উপযোগী।', price: 1200, imageUrl: 'https://placehold.co/600x600.png?text=পাঞ্জাবি', category: 'পোশাক', dataAihint: 'traditional men clothing' },
-  { id: '2', name: 'জামদানি শাড়ি', description: 'বাংলাদেশের গর্ব ঐতিহ্যবাহী জামদানি শাড়ি। নিখুঁত বুনন এবং আকর্ষণীয় ডিজাইন এটিকে করেছে অনন্য। যেকোনো অনুষ্ঠানে আপনাকে দেবে রাজকীয় চেহারা।', price: 5500, imageUrl: 'https://placehold.co/600x600.png?text=শাড়ি', category: 'পোশাক', dataAihint: 'saree fashion' },
-  { id: '3', name: 'চórz বাংলা টি-শার্ট', description: 'উচ্চ মানের কটন ফেব্রিক দিয়ে তৈরি স্টাইলিশ বাংলা প্রিন্টেড টি-শার্ট। এটি পরতে আরামদায়ক এবং দেখতেও আকর্ষণীয়। তরুণদের প্রথম পছন্দ।', price: 450, imageUrl: 'https://placehold.co/600x600.png?text=টি-শার্ট', category: 'পোশাক', dataAihint: 'tshirt graphic' },
-  { id: '4', name: 'নকশি কাঁথা', description: 'বাংলার ঐতিহ্যবাহী হস্তশিল্প নকশি কাঁথা। প্রতিটি কাঁথায় রয়েছে লোককথার ছোঁয়া এবং শিল্পীর নিপুণ হাতের কাজ। এটি আপনার ঘরের সৌন্দর্য বহুগুণে বাড়িয়ে দেবে।', price: 2200, imageUrl: 'https://placehold.co/600x600.png?text=নকশি+কাঁথা', category: 'গৃহসজ্জা', dataAihint: 'textile pattern' },
-  { id: '5', name: 'রূপার গহনা সেট', description: 'আধুনিক নারীদের জন্য আকর্ষণীয় ডিজাইনের রূপার গহনা সেট। এটি আপনার সাজকে আরও আকর্ষণীয় করে তুলবে। যেকোনো পার্টি বা অনুষ্ঠানের জন্য মানানসই।', price: 3500, imageUrl: 'https://placehold.co/600x600.png?text=গহনা', category: 'গহনা', dataAihint: 'jewelry silver' },
-  { id: '6', name: 'চামড়ার স্যান্ডেল', description: 'খাঁটি চামড়া দিয়ে তৈরি উন্নত মানের স্যান্ডেল। এটি পরতে খুবই আরামদায়ক এবং দীর্ঘস্থায়ী। দৈনন্দিন ব্যবহারের জন্য আদর্শ।', price: 900, imageUrl: 'https://placehold.co/600x600.png?text=স্যান্ডেল', category: 'জুতা', dataAihint: 'leather sandals' },
-];
-
+import { useEffect, useState } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
 
 export default function ProductDetailPage() {
   const params = useParams();
   const { addToCart } = useCart();
+  const { toast } = useToast();
   const productId = params.id as string;
 
-  // In a real app, fetch product by ID from Firebase Firestore
-  const product = mockProducts.find(p => p.id === productId);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (productId) {
+      const fetchProduct = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          const productDocRef = doc(db, "products", productId);
+          const productDocSnap = await getDoc(productDocRef);
+
+          if (productDocSnap.exists()) {
+            setProduct({ id: productDocSnap.id, ...productDocSnap.data() } as Product);
+          } else {
+            setError("দুঃখিত, এই পণ্যটি এখন আর খুঁজে পাওয়া যাচ্ছে না।");
+            toast({ title: "ত্রুটি!", description: "পণ্যটি খুঁজে পাওয়া যায়নি।", variant: "destructive" });
+          }
+        } catch (err) {
+          console.error("Error fetching product: ", err);
+          setError("পণ্যটি আনতে একটি সমস্যা হয়েছে। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।");
+          toast({ title: "ত্রুটি!", description: "পণ্যটি আনতে সমস্যা হয়েছে।", variant: "destructive" });
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchProduct();
+    }
+  }, [productId, toast]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
+        <p className="text-lg text-muted-foreground">পণ্যের বিবরণ লোড হচ্ছে...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-10 flex flex-col items-center justify-center min-h-[60vh]">
+        <AlertTriangle className="h-16 w-16 text-destructive mb-4" />
+        <h1 className="text-2xl font-bold mb-2 text-destructive">একটি সমস্যা হয়েছে</h1>
+        <p className="text-muted-foreground mb-6">{error}</p>
+        <Link href="/" className="text-primary hover:underline mt-4 inline-block">
+          <Button variant="default">হোমে ফিরে যান</Button>
+        </Link>
+      </div>
+    );
+  }
+  
   if (!product) {
+     // This case might be redundant if error state handles it, but as a fallback
     return (
         <div className="text-center py-10">
             <h1 className="text-2xl font-bold">পণ্যটি খুঁজে পাওয়া যায়নি।</h1>
@@ -38,6 +84,7 @@ export default function ProductDetailPage() {
         </div>
     );
   }
+
 
   return (
     <div className="max-w-4xl mx-auto">
