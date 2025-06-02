@@ -1,3 +1,4 @@
+
 "use client";
 import CheckoutForm from '@/components/checkout/CheckoutForm';
 import { useCart } from '@/contexts/CartContext';
@@ -5,13 +6,44 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 
 export default function CheckoutPage() {
   const { cartItems, cartTotal, itemCount } = useCart();
+  const { currentUser, loading: authLoading } = useAuth();
+  const router = useRouter();
 
-  if (itemCount === 0 && typeof window !== 'undefined') { // Check window to avoid SSR issues with redirect
-    // Potentially redirect or show empty cart message if router is available client-side
-    // For now, showing a message.
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !authLoading && !currentUser) {
+      router.push('/login?redirect=/checkout');
+    }
+  }, [currentUser, authLoading, router]);
+
+  if (authLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+        <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
+        <p className="text-lg text-muted-foreground">তথ্য লোড হচ্ছে...</p>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <div className="text-center py-20">
+        <h1 className="text-2xl font-headline font-semibold mb-4">অনুগ্রহ করে লগইন করুন</h1>
+        <p className="text-muted-foreground mb-8">চেকআউট করার জন্য আপনাকে লগইন করতে হবে।</p>
+        <Button asChild variant="default" size="lg" className="bg-primary hover:bg-primary/90">
+          <Link href="/login?redirect=/checkout">লগইন পৃষ্ঠায় যান</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  if (itemCount === 0) {
      return (
       <div className="text-center py-20">
         <h1 className="text-2xl font-headline font-semibold mb-4">আপনার কার্ট খালি</h1>
@@ -22,7 +54,6 @@ export default function CheckoutPage() {
       </div>
     );
   }
-
 
   return (
     <div className="grid md:grid-cols-3 gap-12">
@@ -65,3 +96,5 @@ export default function CheckoutPage() {
     </div>
   );
 }
+
+    
