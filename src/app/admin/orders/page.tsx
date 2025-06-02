@@ -10,6 +10,7 @@ import { Loader2, ReceiptText, PackageSearch } from "lucide-react";
 import type { Order, OrderStatus } from "@/lib/types";
 import { format } from 'date-fns';
 import { bn } from 'date-fns/locale'; // For Bengali date formatting
+import { cn } from '@/lib/utils'; // Added import for cn
 
 // Mock data - replace with API call to Firebase Firestore
 const mockOrdersData: Order[] = [
