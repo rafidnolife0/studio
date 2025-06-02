@@ -3,35 +3,36 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Products: Read by anyone, Write by admin
+    // Products collection
+    // Anyone can read products.
+    // Only admin can create, update, or delete products.
     match /products/{productId} {
       allow read: if true;
       allow write: if request.auth != null && request.auth.token.email == 'admin@banglashop.com';
     }
 
-    // Users:
-    // - Authenticated users can create their own user document.
-    // - Users can read and update their own document.
-    // - Admin can read all user documents.
+    // Users collection
+    // Admin can read all user documents.
+    // Authenticated users can create their own user document upon registration.
+    // Authenticated users can read and update their own user document.
     match /users/{userId} {
       allow create: if request.auth != null && request.auth.uid == userId;
-      allow read: if request.auth != null && (request.auth.uid == userId || request.auth.token.email == 'admin@banglashop.com');
-      allow update: if request.auth != null && request.auth.uid == userId;
-      // Delete access is typically restricted or handled by admin/functions
-      allow delete: if request.auth != null && request.auth.token.email == 'admin@banglashop.com';
+      allow read, update: if request.auth != null && (request.auth.uid == userId || request.auth.token.email == 'admin@banglashop.com');
     }
 
-    // Orders:
-    // - Authenticated users can create their own orders.
-    // - Users can read their own orders.
-    // - Admin can read all orders and update/delete any order.
+    // Orders collection
+    // Authenticated users can create their own orders (userId in order data must match auth uid).
+    // Authenticated users can read their own orders.
+    // Admin can read all orders.
+    // Only admin can update or delete orders.
     match /orders/{orderId} {
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
       allow read: if request.auth != null && (resource.data.userId == request.auth.uid || request.auth.token.email == 'admin@banglashop.com');
       allow update, delete: if request.auth != null && request.auth.token.email == 'admin@banglashop.com';
     }
 
-    // Default deny all access to other paths unless explicitly allowed
+    // Default rule: Deny read/write to any other path to ensure security.
+    // Specific rules for other collections should be added above this.
     match /{document=**} {
       allow read, write: if false;
     }
