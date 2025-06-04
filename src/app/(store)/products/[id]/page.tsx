@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import type { Product } from '@/lib/types';
 import { useCart } from '@/contexts/CartContext';
-import { ShoppingCart, ArrowLeft, Loader2, AlertTriangle, Star, MessageSquare, Heart } from 'lucide-react';
+import { ShoppingCart, ArrowLeft, Loader2, AlertTriangle, Star, MessageSquare, Heart, PackageCheck, PackageX, Info } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { useEffect, useState } from 'react';
@@ -14,7 +14,8 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input'; // Added missing import
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -79,6 +80,7 @@ export default function ProductDetailPage() {
   if (!product) {
     return (
         <div className="text-center py-10 min-h-[calc(100vh-200px)] flex flex-col justify-center items-center">
+            <AlertTriangle className="h-16 w-16 text-muted-foreground mb-4" />
             <h1 className="text-2xl font-bold">পণ্যটি খুঁজে পাওয়া যায়নি।</h1>
             <Button asChild variant="link" className="mt-4">
                 <Link href="/">হোমে ফিরে যান</Link>
@@ -95,6 +97,38 @@ export default function ProductDetailPage() {
     });
   };
 
+  const handleWishlistClick = () => {
+    toast({
+      title: "শীঘ্রই আসছে!",
+      description: `${product.name} আপনার পছন্দের তালিকায় যোগ করার সুবিধা শীঘ্রই আসছে।`,
+    });
+  };
+  
+  const stockInfo = () => {
+    if (typeof product.stockQuantity === 'number') {
+      if (product.stockQuantity <= 0) {
+        return (
+          <Badge variant="destructive" className="text-sm py-1 px-3 flex items-center gap-2">
+            <PackageX className="h-4 w-4" /> স্টক শেষ
+          </Badge>
+        );
+      } else if (product.stockQuantity < 10) {
+        return (
+          <Badge variant="outline" className="text-sm py-1 px-3 border-yellow-500 text-yellow-600 flex items-center gap-2">
+            <Info className="h-4 w-4" /> স্টক সীমিত ({product.stockQuantity.toLocaleString('bn-BD')}টি বাকি)
+          </Badge>
+        );
+      }
+      return (
+        <Badge variant="secondary" className="text-sm py-1 px-3 flex items-center gap-2">
+          <PackageCheck className="h-4 w-4" /> স্টকে আছে ({product.stockQuantity.toLocaleString('bn-BD')}টি)
+        </Badge>
+      );
+    }
+    return <Badge variant="outline" className="text-sm py-1 px-3">স্টকের তথ্য নেই</Badge>;
+  };
+
+
   return (
     <div className="max-w-5xl mx-auto">
       <div className="mb-6">
@@ -106,9 +140,9 @@ export default function ProductDetailPage() {
         </Button>
       </div>
       
-      <Card className="overflow-hidden shadow-xl">
+      <Card className="overflow-hidden shadow-xl border-t-4 border-primary">
         <div className="grid md:grid-cols-2 gap-0">
-          <div className="p-4 md:p-6 bg-card flex justify-center items-center md:border-r">
+          <div className="p-4 md:p-6 bg-card flex justify-center items-center md:border-r border-border">
             <div className="aspect-square relative w-full max-w-md">
               <Image
                 src={product.imageUrl || "https://placehold.co/600x600.png"}
@@ -124,13 +158,15 @@ export default function ProductDetailPage() {
           <div className="p-6 md:p-8 flex flex-col">
             <CardHeader className="p-0 mb-4">
               <CardTitle className="text-3xl lg:text-4xl font-headline mb-2 text-primary">{product.name}</CardTitle>
-              {product.category && (
-                <Badge variant="secondary" className="w-fit text-sm py-1 px-3">{product.category}</Badge>
-              )}
+              <div className="flex flex-wrap gap-2 items-center">
+                {product.category && (
+                  <Badge variant="secondary" className="text-sm py-1 px-3">{product.category}</Badge>
+                )}
+                {stockInfo()}
+              </div>
             </CardHeader>
 
             <CardContent className="p-0 flex-grow space-y-4">
-              {/* Placeholder for ratings and reviews */}
               <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <div className="flex items-center">
                   {[...Array(5)].map((_, i) => (
@@ -141,14 +177,14 @@ export default function ProductDetailPage() {
                 <span className="text-primary hover:underline cursor-pointer flex items-center"><MessageSquare className="h-4 w-4 mr-1" /> একটি রিভিউ লিখুন</span>
               </div>
 
-              <CardDescription className="text-base text-foreground leading-relaxed line-clamp-5 hover:line-clamp-none transition-all duration-300 ease-in-out">
+              <CardDescription className="text-base text-foreground/90 leading-relaxed">
                 {product.description}
               </CardDescription>
               
               <p className="text-4xl font-bold text-accent pt-2">৳{product.price.toLocaleString('bn-BD')}</p>
 
               <div className="flex items-center space-x-3 pt-2">
-                <label htmlFor="quantity" className="font-medium">পরিমাণ:</label>
+                <label htmlFor="quantity" className="font-medium text-sm">পরিমাণ:</label>
                 <Input
                   id="quantity"
                   type="number"
@@ -156,6 +192,7 @@ export default function ProductDetailPage() {
                   onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
                   className="w-20 h-10 text-center"
                   min="1"
+                  disabled={product.stockQuantity !== undefined && product.stockQuantity <= 0}
                 />
               </div>
             </CardContent>
@@ -164,13 +201,14 @@ export default function ProductDetailPage() {
               <Button
                 variant="default"
                 size="lg"
-                className="w-full bg-accent text-accent-foreground hover:bg-accent/90 text-lg flex-grow"
+                className="w-full bg-accent text-accent-foreground hover:bg-accent/90 text-lg flex-grow py-3"
                 onClick={handleAddToCart}
+                disabled={product.stockQuantity !== undefined && product.stockQuantity <= 0}
               >
                 <ShoppingCart className="mr-2 h-5 w-5" />
-                কার্টে যোগ করুন
+                {product.stockQuantity !== undefined && product.stockQuantity <= 0 ? 'স্টক নেই' : 'কার্টে যোগ করুন'}
               </Button>
-              <Button variant="outline" size="lg" className="px-4">
+              <Button variant="outline" size="lg" className="px-4 py-3 border-primary/50 text-primary/70 hover:bg-primary/10 hover:text-primary" onClick={handleWishlistClick}>
                 <Heart className="h-5 w-5" />
                 <span className="sr-only">পছন্দের তালিকায় যোগ করুন</span>
               </Button>
@@ -178,6 +216,19 @@ export default function ProductDetailPage() {
           </div>
         </div>
       </Card>
+
+      <Separator className="my-10"/>
+
+      {/* Related Products Placeholder */}
+      <section className="mt-12">
+        <h2 className="text-2xl font-headline font-bold mb-6 text-primary">সম্পর্কিত পণ্যসমূহ</h2>
+        <Card className="shadow-md">
+          <CardContent className="p-10 text-center">
+            <Info className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-muted-foreground">এই পণ্যের সাথে সম্পর্কিত অন্যান্য পণ্য শীঘ্রই এখানে দেখানো হবে।</p>
+          </CardContent>
+        </Card>
+      </section>
     </div>
   );
 }

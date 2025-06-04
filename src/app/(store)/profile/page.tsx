@@ -17,12 +17,13 @@ import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/hooks/use-toast';
 
 
 const orderStatusMap: Record<Order['status'], string> = {
   Pending: 'অপেক্ষারত',
   Processing: 'প্রসেসিং চলছে',
-  Shipped: 'শিপড',
+  Shipped: 'পাঠানো হয়েছে',
   Delivered: 'ডেলিভারি হয়েছে',
   Cancelled: 'বাতিল হয়েছে',
 };
@@ -44,6 +45,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!authLoading && !currentUser) {
@@ -73,12 +75,13 @@ export default function ProfilePage() {
         setLoadingOrders(false);
       }, (error) => {
         console.error("Error fetching orders: ", error);
+        toast({ title: "ত্রুটি!", description: "আপনার অর্ডারগুলো আনতে সমস্যা হয়েছে।", variant: "destructive"});
         setLoadingOrders(false);
       });
 
       return () => unsubscribe();
     }
-  }, [currentUser]);
+  }, [currentUser, toast]);
 
   if (authLoading || (!currentUser && !authLoading)) { 
     return (
@@ -90,6 +93,7 @@ export default function ProfilePage() {
   }
   
   if (!currentUser) {
+    // This case should be covered by the redirect, but as a fallback.
     return (
       <div className="text-center py-20 min-h-[calc(100vh-200px)] flex flex-col justify-center items-center">
         <h1 className="text-2xl font-headline font-semibold mb-4">অনুগ্রহ করে লগইন করুন</h1>
@@ -101,19 +105,26 @@ export default function ProfilePage() {
     );
   }
 
+  const handleEditProfile = () => {
+    toast({
+      title: "শীঘ্রই আসছে!",
+      description: "প্রোফাইল সম্পাদনা করার সুবিধা শীঘ্রই যোগ করা হবে।",
+    });
+  };
+
   return (
     <div className="max-w-5xl mx-auto">
-      <Card className="mb-10 shadow-xl border-t-4 border-primary">
-        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4">
+      <Card className="mb-10 shadow-xl border-t-4 border-primary rounded-lg">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 p-6">
           <div className="flex items-center gap-4">
             <UserCircle className="h-16 w-16 text-primary shrink-0" />
             <div>
               <CardTitle className="text-3xl font-headline">{currentUser.displayName || 'ব্যবহারকারী'}</CardTitle>
-              <CardDescription className="text-base">{currentUser.email}</CardDescription>
+              <CardDescription className="text-base text-muted-foreground">{currentUser.email}</CardDescription>
             </div>
           </div>
-          <div className="flex gap-2 w-full sm:w-auto">
-            <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto pt-2 sm:pt-0">
+            <Button variant="outline" size="sm" className="flex-1 sm:flex-none text-primary border-primary hover:bg-primary/10" onClick={handleEditProfile}>
                 <Edit2 className="mr-2 h-4 w-4" /> প্রোফাইল সম্পাদনা
             </Button>
             <Button variant="outline" onClick={logout} size="sm" className="text-destructive border-destructive hover:bg-destructive/10 hover:text-destructive flex-1 sm:flex-none">
@@ -125,10 +136,9 @@ export default function ProfilePage() {
 
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-3xl font-headline font-bold text-primary flex items-center">
-          <ShoppingBag className="mr-3 h-8 w-8" />
+          <ShoppingBag className="mr-3 h-8 w-8 text-accent" />
           আপনার অর্ডারসমূহ
         </h2>
-         {/* Placeholder for sorting/filtering orders */}
       </div>
 
 
@@ -138,7 +148,7 @@ export default function ProfilePage() {
           <p className="text-muted-foreground">আপনার অর্ডারগুলো লোড হচ্ছে...</p>
         </div>
       ) : orders.length === 0 ? (
-        <Card className="text-center py-16 px-6 shadow-md">
+        <Card className="text-center py-16 px-6 shadow-md rounded-lg">
           <CardContent className="flex flex-col items-center">
             <PackageSearch className="mx-auto h-24 w-24 text-muted-foreground mb-6" />
             <h3 className="text-2xl font-semibold mb-3 text-primary">এখনও কোনো অর্ডার করেননি!</h3>
@@ -160,7 +170,7 @@ export default function ProfilePage() {
                       {order.orderDate ? format(new Date(order.orderDate), 'dd MMMM, yyyy, hh:mm a', { locale: bn }) : 'N/A'}
                     </p>
                   </div>
-                  <div className="flex sm:flex-col items-end gap-2 sm:gap-0 sm:text-right w-full sm:w-auto mt-2 sm:mt-0">
+                  <div className="flex flex-row sm:flex-col items-end gap-2 sm:gap-0 sm:text-right w-full sm:w-auto mt-2 sm:mt-0">
                      <Badge variant="outline" className={`text-xs font-semibold px-2 py-1 rounded-full ${getStatusBadgeVariant(order.status)}`}>
                         {orderStatusMap[order.status]}
                      </Badge>
@@ -173,7 +183,7 @@ export default function ProfilePage() {
                 <div className="grid md:grid-cols-5 gap-6">
                     <div className="md:col-span-3">
                         <h4 className="font-semibold mb-3 text-md text-primary">অর্ডারকৃত পণ্যসমূহ:</h4>
-                        <div className="space-y-3 max-h-72 overflow-y-auto pr-2 -mr-2 rounded-md border bg-background p-3">
+                        <div className="space-y-3 max-h-72 overflow-y-auto pr-2 -mr-2 rounded-md border bg-background/50 p-3">
                             {order.items.map((item: OrderItem, index: number) => (
                             <Card key={index} className="flex items-start p-3 gap-3 shadow-sm bg-card hover:shadow-md transition-shadow">
                                 <Image
@@ -200,7 +210,7 @@ export default function ProfilePage() {
                     </div>
                      <div className="md:col-span-2">
                         <h4 className="font-semibold mb-3 text-md text-primary">ডেলিভারির ঠিকানা:</h4>
-                        <Card className="p-4 shadow-sm space-y-2 text-sm bg-background border">
+                        <Card className="p-4 shadow-sm space-y-2 text-sm bg-background/50 border">
                             <p><strong>নাম:</strong> {order.shippingAddress.name}</p>
                             <p><strong>ফোন:</strong> <a href={`tel:${order.shippingAddress.phone}`} className="text-primary hover:underline">{order.shippingAddress.phone}</a></p>
                             <p><strong>ঠিকানা:</strong> {order.shippingAddress.address}</p>

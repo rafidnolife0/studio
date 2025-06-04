@@ -31,6 +31,7 @@ const formSchema = z.object({
   name: z.string().min(3, { message: "পণ্যের নাম কমপক্ষে ৩ অক্ষরের হতে হবে।" }),
   description: z.string().min(10, { message: "পণ্যের বিবরণ কমপক্ষে ১০ অক্ষরের হতে হবে।" }),
   price: z.coerce.number().min(0, { message: "মূল্য ০ বা তার বেশি হতে হবে।" }),
+  stockQuantity: z.coerce.number().min(0, {message: "স্টকের পরিমাণ ০ বা তার বেশি হতে হবে।"}).optional(),
   category: z.string().optional(),
   imageUrl: z.string().url({ message: "সঠিক ছবির URL প্রদান করুন।" }).or(z.literal("")).optional(), // Accepts valid URL or empty string
   dataAihint: z.string().optional(),
@@ -48,6 +49,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
       name: initialData?.name || "",
       description: initialData?.description || "",
       price: initialData?.price || 0,
+      stockQuantity: initialData?.stockQuantity || 0,
       category: initialData?.category || "",
       imageUrl: initialData?.imageUrl || "",
       dataAihint: initialData?.dataAihint || "",
@@ -60,6 +62,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
             name: initialData.name,
             description: initialData.description,
             price: initialData.price,
+            stockQuantity: initialData.stockQuantity || 0,
             category: initialData.category || "",
             imageUrl: initialData.imageUrl || "",
             dataAihint: initialData.dataAihint || "",
@@ -94,6 +97,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
       name: values.name,
       description: values.description,
       price: values.price,
+      stockQuantity: values.stockQuantity || 0,
       category: values.category || "",
       imageUrl: values.imageUrl || initialData?.imageUrl || "https://placehold.co/400x400.png", // Fallback placeholder
       dataAihint: values.dataAihint || "product item",
@@ -151,7 +155,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
             </FormItem>
           )}
         />
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-3 gap-6">
             <FormField
             control={form.control}
             name="price"
@@ -159,6 +163,17 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                 <FormItem>
                 <FormLabel>মূল্য (৳)</FormLabel>
                 <FormControl><Input type="number" step="any" placeholder="যেমনঃ ১২০০" {...field} /></FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <FormField
+            control={form.control}
+            name="stockQuantity"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>স্টকের পরিমাণ</FormLabel>
+                <FormControl><Input type="number" placeholder="যেমনঃ ৫০" {...field} /></FormControl>
                 <FormMessage />
                 </FormItem>
             )}
@@ -223,3 +238,4 @@ export default function ProductForm({ initialData }: ProductFormProps) {
     </Form>
   );
 }
+

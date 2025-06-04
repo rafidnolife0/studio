@@ -8,6 +8,7 @@ export interface Product {
   price: number;
   imageUrl: string;
   category?: string; // Bangla
+  stockQuantity?: number; // New: Stock Quantity
   dataAihint?: string;
   createdAt?: Timestamp | string; // Allow string for client-side new Date().toISOString() before Firestore conversion
   updatedAt?: Timestamp | string;
