@@ -14,6 +14,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input'; // Added missing import
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -180,4 +181,3 @@ export default function ProductDetailPage() {
     </div>
   );
 }
-
