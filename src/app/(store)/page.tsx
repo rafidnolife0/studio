@@ -5,13 +5,14 @@ import type { Product } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ShieldCheck, Loader2, AlertTriangle, ShoppingBag, Filter, Tags, Grip } from 'lucide-react';
+import { ShieldCheck, Loader2, AlertTriangle, ShoppingBag, Filter, Tags, Grip, Search as SearchIcon } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 
@@ -23,6 +24,7 @@ export default function HomePage() {
   const { toast } = useToast();
   const ADMIN_EMAIL = "admin@banglashop.com";
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState<string>("");
 
   useEffect(() => {
     setLoadingProducts(true);
@@ -51,15 +53,25 @@ export default function HomePage() {
         categories.add(product.category);
       }
     });
-    return Array.from(categories).sort(); // Sort categories alphabetically
+    return Array.from(categories).sort();
   }, [products]);
 
   const filteredProducts = useMemo(() => {
-    if (selectedCategory === "all") {
-      return products;
+    let tempProducts = products;
+
+    if (selectedCategory !== "all") {
+      tempProducts = tempProducts.filter(product => product.category === selectedCategory);
     }
-    return products.filter(product => product.category === selectedCategory);
-  }, [products, selectedCategory]);
+
+    if (searchTerm.trim() !== "") {
+      const lowercasedSearchTerm = searchTerm.toLowerCase();
+      tempProducts = tempProducts.filter(product =>
+        product.name.toLowerCase().includes(lowercasedSearchTerm) ||
+        (product.description && product.description.toLowerCase().includes(lowercasedSearchTerm))
+      );
+    }
+    return tempProducts;
+  }, [products, selectedCategory, searchTerm]);
 
   if (loadingProducts) {
     return (
@@ -80,6 +92,17 @@ export default function HomePage() {
       </div>
     );
   }
+  
+  const getEmptyStateMessage = () => {
+    if (searchTerm && selectedCategory !== "all") {
+      return `দুঃখিত, "${searchTerm}" অনুসন্ধান এবং "${selectedCategory}" ক্যাটাগরিতে কোনো পণ্য পাওয়া যায়নি।`;
+    } else if (searchTerm) {
+      return `দুঃখিত, "${searchTerm}" অনুসন্ধানে কোনো পণ্য পাওয়া যায়নি।`;
+    } else if (selectedCategory !== "all") {
+      return `দুঃখিত, "${selectedCategory}" ক্যাটাগরিতে কোনো পণ্য পাওয়া যায়নি।`;
+    }
+    return "এখনও কোনো পণ্য যোগ করা হয়নি।";
+  };
 
   return (
     <div>
@@ -119,46 +142,57 @@ export default function HomePage() {
                     <Grip className="mr-3 h-8 w-8 text-accent" />
                     আমাদের পণ্যসমূহ
                 </CardTitle>
-                {uniqueCategories.length > 0 && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Filter className="h-5 w-5" />
-                        <span>ক্যাটাগরি অনুযায়ী ফিল্টার করুন:</span>
-                    </div>
-                )}
             </div>
           </CardHeader>
-          {uniqueCategories.length > 0 && (
-            <CardContent className="pt-2 pb-6">
-              <div className="flex flex-wrap gap-2 justify-center md:justify-start">
-                <Button
-                  variant={selectedCategory === "all" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedCategory("all")}
-                  className={cn(
-                    "font-medium rounded-full px-4 py-1.5 text-sm transition-all",
-                    selectedCategory === "all" ? "bg-primary text-primary-foreground shadow-md" : "text-foreground hover:bg-primary/10 hover:text-primary"
-                  )}
-                >
-                  <Tags className="mr-2 h-4 w-4" />
-                  সকল ক্যাটাগরি
-                </Button>
-                {uniqueCategories.map(category => (
+          <CardContent className="pt-4 pb-6 space-y-6">
+            <div className="relative">
+              <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
+              <Input
+                type="search"
+                placeholder="পণ্য খুঁজুন (যেমন: শার্ট, মোবাইল...)"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 text-base rounded-lg border-2 border-border focus:border-primary shadow-sm transition-colors focus:ring-1 focus:ring-primary"
+              />
+            </div>
+
+            {uniqueCategories.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+                    <Filter className="h-5 w-5" />
+                    <span>ক্যাটাগরি অনুযায়ী ফিল্টার করুন:</span>
+                </div>
+                <div className="flex flex-wrap gap-2 justify-center md:justify-start">
                   <Button
-                    key={category}
-                    variant={selectedCategory === category ? "default" : "outline"}
+                    variant={selectedCategory === "all" ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setSelectedCategory(category)}
+                    onClick={() => setSelectedCategory("all")}
                     className={cn(
                       "font-medium rounded-full px-4 py-1.5 text-sm transition-all",
-                      selectedCategory === category ? "bg-primary text-primary-foreground shadow-md" : "text-foreground hover:bg-primary/10 hover:text-primary"
+                      selectedCategory === "all" ? "bg-primary text-primary-foreground shadow-md" : "text-foreground hover:bg-primary/10 hover:text-primary"
                     )}
                   >
-                    {category}
+                    <Tags className="mr-2 h-4 w-4" />
+                    সকল ক্যাটাগরি
                   </Button>
-                ))}
+                  {uniqueCategories.map(category => (
+                    <Button
+                      key={category}
+                      variant={selectedCategory === category ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedCategory(category)}
+                      className={cn(
+                        "font-medium rounded-full px-4 py-1.5 text-sm transition-all",
+                        selectedCategory === category ? "bg-primary text-primary-foreground shadow-md" : "text-foreground hover:bg-primary/10 hover:text-primary"
+                      )}
+                    >
+                      {category}
+                    </Button>
+                  ))}
+                </div>
               </div>
-            </CardContent>
-          )}
+            )}
+          </CardContent>
         </Card>
       </div>
       
@@ -167,13 +201,15 @@ export default function HomePage() {
           <CardContent className="flex flex-col items-center">
             <ShoppingBag className="mx-auto h-24 w-24 text-muted-foreground mb-6" />
             <h3 className="text-2xl font-semibold mb-3 text-primary">
-              {selectedCategory === "all" ? "এখনও কোনো পণ্য যোগ করা হয়নি।" : `দুঃখিত, "${selectedCategory}" ক্যাটাগরিতে কোনো পণ্য পাওয়া যায়নি।`}
+              {getEmptyStateMessage()}
             </h3>
-            {currentUser?.email === ADMIN_EMAIL && selectedCategory === "all" && (
+            {currentUser?.email === ADMIN_EMAIL && products.length === 0 && ( // Only show if no products at all
               <p className="mt-1 text-sm text-muted-foreground">অ্যাডমিন প্যানেল থেকে নতুন পণ্য যোগ করুন।</p>
             )}
-            {selectedCategory !== "all" && (
-               <Button variant="link" onClick={() => setSelectedCategory("all")} className="text-accent text-base">সকল ক্যাটাগরি দেখুন</Button>
+            {(selectedCategory !== "all" || searchTerm) && ( // Show if any filter is active
+               <Button variant="link" onClick={() => { setSelectedCategory("all"); setSearchTerm(""); }} className="text-accent text-base">
+                 সকল ফিল্টার পরিষ্কার করুন
+               </Button>
             )}
           </CardContent>
         </Card>
