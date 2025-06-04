@@ -230,3 +230,4 @@ export default function AuthForm({ isRegister = false }: AuthFormProps) {
     </Card>
   );
 }
+

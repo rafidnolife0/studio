@@ -62,3 +62,4 @@ export interface Order {
   paymentMethod?: string; // e.g., 'Cash on Delivery'
   transactionId?: string; // If online payment
 }
+
