@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
 import { collection, query, where, orderBy, onSnapshot, Timestamp } from 'firebase/firestore';
 import type { Order, OrderItem } from '@/lib/types';
-import { Loader2, PackageSearch, UserCircle, ShoppingBag, MapPin, Edit3, LogOut } from 'lucide-react';
+import { Loader2, PackageSearch, UserCircle, ShoppingBag, MapPin, LogOut, Edit2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -16,6 +16,7 @@ import { bn } from 'date-fns/locale';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Separator } from '@/components/ui/separator';
 
 
 const orderStatusMap: Record<Order['status'], string> = {
@@ -26,14 +27,14 @@ const orderStatusMap: Record<Order['status'], string> = {
   Cancelled: 'বাতিল হয়েছে',
 };
 
-const getStatusBadgeVariant = (status: Order['status']) => {
+const getStatusBadgeVariant = (status: Order['status']): string => {
   switch (status) {
-    case 'Pending': return 'bg-yellow-500/80 hover:bg-yellow-500 text-white';
-    case 'Processing': return 'bg-blue-500/80 hover:bg-blue-500 text-white';
-    case 'Shipped': return 'bg-indigo-500/80 hover:bg-indigo-500 text-white';
-    case 'Delivered': return 'bg-green-500/80 hover:bg-green-500 text-white';
-    case 'Cancelled': return 'bg-red-500/80 hover:bg-red-500 text-white';
-    default: return 'secondary';
+    case 'Pending': return 'bg-yellow-100 text-yellow-800 border-yellow-400 hover:bg-yellow-200';
+    case 'Processing': return 'bg-blue-100 text-blue-800 border-blue-400 hover:bg-blue-200';
+    case 'Shipped': return 'bg-indigo-100 text-indigo-800 border-indigo-400 hover:bg-indigo-200';
+    case 'Delivered': return 'bg-green-100 text-green-800 border-green-400 hover:bg-green-200';
+    case 'Cancelled': return 'bg-red-100 text-red-800 border-red-400 hover:bg-red-200';
+    default: return 'bg-gray-100 text-gray-800 border-gray-400';
   }
 };
 
@@ -79,7 +80,7 @@ export default function ProfilePage() {
     }
   }, [currentUser]);
 
-  if (authLoading || (!currentUser && !authLoading)) { // Show loader if auth is loading or if user is null but auth isn't done loading
+  if (authLoading || (!currentUser && !authLoading)) { 
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] text-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
@@ -88,9 +89,9 @@ export default function ProfilePage() {
     );
   }
   
-  if (!currentUser) { // Should be caught by useEffect redirect, but as a fallback
+  if (!currentUser) {
     return (
-      <div className="text-center py-20">
+      <div className="text-center py-20 min-h-[calc(100vh-200px)] flex flex-col justify-center items-center">
         <h1 className="text-2xl font-headline font-semibold mb-4">অনুগ্রহ করে লগইন করুন</h1>
         <p className="text-muted-foreground mb-8">আপনার প্রোফাইল দেখতে লগইন করতে হবে।</p>
         <Button asChild variant="default" size="lg" className="bg-primary hover:bg-primary/90">
@@ -101,97 +102,113 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <Card className="mb-8 shadow-lg">
-        <CardHeader className="flex flex-row items-center justify-between">
+    <div className="max-w-5xl mx-auto">
+      <Card className="mb-10 shadow-xl border-t-4 border-primary">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4">
           <div className="flex items-center gap-4">
-            <UserCircle className="h-12 w-12 text-primary" />
+            <UserCircle className="h-16 w-16 text-primary shrink-0" />
             <div>
-              <CardTitle className="text-2xl font-headline">{currentUser.displayName || 'ব্যবহারকারী'}</CardTitle>
-              <CardDescription>{currentUser.email}</CardDescription>
+              <CardTitle className="text-3xl font-headline">{currentUser.displayName || 'ব্যবহারকারী'}</CardTitle>
+              <CardDescription className="text-base">{currentUser.email}</CardDescription>
             </div>
           </div>
-          <Button variant="outline" onClick={logout} size="sm">
-            <LogOut className="mr-2 h-4 w-4" /> লগআউট
-          </Button>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+                <Edit2 className="mr-2 h-4 w-4" /> প্রোফাইল সম্পাদনা
+            </Button>
+            <Button variant="outline" onClick={logout} size="sm" className="text-destructive border-destructive hover:bg-destructive/10 hover:text-destructive flex-1 sm:flex-none">
+              <LogOut className="mr-2 h-4 w-4" /> লগআউট
+            </Button>
+          </div>
         </CardHeader>
-        {/* <CardContent className="grid md:grid-cols-2 gap-4 pt-4">
-          <Button variant="ghost" className="justify-start"><Edit3 className="mr-2 h-4 w-4" /> প্রোফাইল সম্পাদনা করুন</Button>
-          <Button variant="ghost" className="justify-start"><MapPin className="mr-2 h-4 w-4" /> ঠিকানা পরিচালনা করুন</Button>
-        </CardContent> */}
       </Card>
 
-      <h2 className="text-2xl font-headline font-bold mb-6 text-primary flex items-center">
-        <ShoppingBag className="mr-3 h-7 w-7" />
-        আপনার অর্ডারসমূহ
-      </h2>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-3xl font-headline font-bold text-primary flex items-center">
+          <ShoppingBag className="mr-3 h-8 w-8" />
+          আপনার অর্ডারসমূহ
+        </h2>
+         {/* Placeholder for sorting/filtering orders */}
+      </div>
+
 
       {loadingOrders ? (
-        <div className="text-center py-10">
+        <div className="text-center py-16">
           <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary mb-4" />
           <p className="text-muted-foreground">আপনার অর্ডারগুলো লোড হচ্ছে...</p>
         </div>
       ) : orders.length === 0 ? (
-        <div className="text-center py-20 bg-card rounded-lg shadow-md p-8">
-          <PackageSearch className="mx-auto h-20 w-20 text-muted-foreground mb-6" />
-          <h3 className="text-xl font-semibold mb-3">এখনও কোনো অর্ডার করেননি!</h3>
-          <p className="text-muted-foreground mb-6">আপনার পছন্দের পণ্যগুলো খুঁজে দেখুন এবং অর্ডার করুন।</p>
-          <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
-            <Link href="/">কেনাকাটা শুরু করুন</Link>
-          </Button>
-        </div>
+        <Card className="text-center py-16 px-6 shadow-md">
+          <CardContent className="flex flex-col items-center">
+            <PackageSearch className="mx-auto h-24 w-24 text-muted-foreground mb-6" />
+            <h3 className="text-2xl font-semibold mb-3 text-primary">এখনও কোনো অর্ডার করেননি!</h3>
+            <p className="text-muted-foreground mb-8 max-w-md">আপনার পছন্দের পণ্যগুলো খুঁজে দেখুন এবং আজই আপনার প্রথম অর্ডারটি করুন। আমরা সেরা মানের পণ্য ও দ্রুত ডেলিভারি নিশ্চিত করি।</p>
+            <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 text-base py-3 px-6">
+              <Link href="/">কেনাকাটা শুরু করুন</Link>
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
         <Accordion type="single" collapsible className="w-full space-y-4">
           {orders.map((order) => (
-            <AccordionItem value={order.id} key={order.id} className="bg-card border border-border rounded-lg shadow-md overflow-hidden">
-              <AccordionTrigger className="px-6 py-4 hover:bg-muted/50 transition-colors">
-                <div className="flex justify-between items-center w-full">
-                  <div className="text-left">
-                    <p className="font-mono text-sm text-primary">অর্ডার নং: {order.orderNumber}</p>
+            <AccordionItem value={order.id} key={order.id} className="bg-card border border-border rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden">
+              <AccordionTrigger className="px-4 py-3 md:px-6 md:py-4 hover:bg-muted/50 transition-colors text-left">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center w-full gap-2 sm:gap-4">
+                  <div className="flex-1">
+                    <p className="font-mono text-sm font-semibold text-primary">অর্ডার নং: {order.orderNumber}</p>
                     <p className="text-xs text-muted-foreground">
                       {order.orderDate ? format(new Date(order.orderDate), 'dd MMMM, yyyy, hh:mm a', { locale: bn }) : 'N/A'}
                     </p>
                   </div>
-                  <div className="text-right flex flex-col items-end">
-                     <Badge variant="outline" className={`text-xs font-semibold ${getStatusBadgeVariant(order.status)}`}>
+                  <div className="flex sm:flex-col items-end gap-2 sm:gap-0 sm:text-right w-full sm:w-auto mt-2 sm:mt-0">
+                     <Badge variant="outline" className={`text-xs font-semibold px-2 py-1 rounded-full ${getStatusBadgeVariant(order.status)}`}>
                         {orderStatusMap[order.status]}
                      </Badge>
-                    <p className="text-lg font-semibold mt-1">৳{order.totalAmount.toLocaleString('bn-BD')}</p>
+                    <p className="text-lg font-bold text-accent">৳{order.totalAmount.toLocaleString('bn-BD')}</p>
                   </div>
                 </div>
               </AccordionTrigger>
-              <AccordionContent className="px-6 pb-6 pt-0">
-                <div className="border-t pt-4 mt-2">
-                  <h4 className="font-semibold mb-3 text-md">অর্ডারকৃত পণ্যসমূহ:</h4>
-                  <div className="space-y-3 mb-6 max-h-60 overflow-y-auto pr-2">
-                    {order.items.map((item: OrderItem, index: number) => (
-                      <div key={index} className="flex items-start gap-3 p-2.5 rounded-md border bg-background shadow-sm">
-                        <Image
-                          src={item.imageUrl || "https://placehold.co/64x64.png"}
-                          alt={item.name}
-                          width={60}
-                          height={60}
-                          className="rounded object-cover border"
-                          data-ai-hint="ordered product"
-                        />
-                        <div className="flex-grow">
-                          <p className="font-medium text-sm leading-tight">{item.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            পরিমাণ: {item.quantity.toLocaleString('bn-BD')} | 
-                            একক মূল্য: ৳{item.price.toLocaleString('bn-BD')}
-                          </p>
+              <AccordionContent className="px-4 pb-4 pt-0 md:px-6 md:pb-6">
+                <Separator className="mb-4 mt-2"/>
+                <div className="grid md:grid-cols-5 gap-6">
+                    <div className="md:col-span-3">
+                        <h4 className="font-semibold mb-3 text-md text-primary">অর্ডারকৃত পণ্যসমূহ:</h4>
+                        <div className="space-y-3 max-h-72 overflow-y-auto pr-2 -mr-2 rounded-md border bg-background p-3">
+                            {order.items.map((item: OrderItem, index: number) => (
+                            <Card key={index} className="flex items-start p-3 gap-3 shadow-sm bg-card hover:shadow-md transition-shadow">
+                                <Image
+                                src={item.imageUrl || "https://placehold.co/64x64.png"}
+                                alt={item.name}
+                                width={64}
+                                height={64}
+                                className="rounded-md object-cover border shrink-0"
+                                data-ai-hint="ordered item thumbnail"
+                                />
+                                <div className="flex-grow">
+                                <p className="font-semibold leading-tight text-sm">{item.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                    পরিমাণ: {item.quantity.toLocaleString('bn-BD')} | 
+                                    একক মূল্য: ৳{item.price.toLocaleString('bn-BD')}
+                                </p>
+                                </div>
+                                <p className="text-sm font-bold text-primary whitespace-nowrap">
+                                ৳{(item.price * item.quantity).toLocaleString('bn-BD')}
+                                </p>
+                            </Card>
+                            ))}
                         </div>
-                        <p className="text-sm font-semibold">৳{(item.price * item.quantity).toLocaleString('bn-BD')}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <h4 className="font-semibold mb-2 text-md">ডেলিভারির ঠিকানা:</h4>
-                  <div className="text-sm p-3 rounded-md border bg-background shadow-sm space-y-1">
-                    <p><strong>নাম:</strong> {order.shippingAddress.name}</p>
-                    <p><strong>ফোন:</strong> {order.shippingAddress.phone}</p>
-                    <p><strong>ঠিকানা:</strong> {order.shippingAddress.address}, {order.shippingAddress.thana}, {order.shippingAddress.district}, {order.shippingAddress.division}</p>
-                    {order.shippingAddress.notes && <p><strong>বিশেষ নির্দেশনা:</strong> {order.shippingAddress.notes}</p>}
-                  </div>
+                    </div>
+                     <div className="md:col-span-2">
+                        <h4 className="font-semibold mb-3 text-md text-primary">ডেলিভারির ঠিকানা:</h4>
+                        <Card className="p-4 shadow-sm space-y-2 text-sm bg-background border">
+                            <p><strong>নাম:</strong> {order.shippingAddress.name}</p>
+                            <p><strong>ফোন:</strong> <a href={`tel:${order.shippingAddress.phone}`} className="text-primary hover:underline">{order.shippingAddress.phone}</a></p>
+                            <p><strong>ঠিকানা:</strong> {order.shippingAddress.address}</p>
+                            <p>{order.shippingAddress.thana}, {order.shippingAddress.district}</p>
+                            <p>{order.shippingAddress.division}</p>
+                            {order.shippingAddress.notes && <p className="mt-2 pt-2 border-t text-xs"><strong>বিশেষ নির্দেশনা:</strong> {order.shippingAddress.notes}</p>}
+                        </Card>
+                    </div>
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -201,5 +218,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-    
