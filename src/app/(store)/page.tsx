@@ -5,12 +5,15 @@ import type { Product } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ShieldCheck, Loader2, AlertTriangle, ShoppingBag } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { ShieldCheck, Loader2, AlertTriangle, ShoppingBag, Filter } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent } from '@/components/ui/card';
+
 
 export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -19,6 +22,7 @@ export default function HomePage() {
   const { currentUser, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const ADMIN_EMAIL = "admin@banglashop.com";
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   useEffect(() => {
     setLoadingProducts(true);
@@ -40,6 +44,23 @@ export default function HomePage() {
     return () => unsubscribe();
   }, [toast]);
 
+  const uniqueCategories = useMemo(() => {
+    const categories = new Set<string>();
+    products.forEach(product => {
+      if (product.category) {
+        categories.add(product.category);
+      }
+    });
+    return Array.from(categories);
+  }, [products]);
+
+  const filteredProducts = useMemo(() => {
+    if (selectedCategory === "all") {
+      return products;
+    }
+    return products.filter(product => product.category === selectedCategory);
+  }, [products, selectedCategory]);
+
   if (loadingProducts) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
@@ -55,7 +76,7 @@ export default function HomePage() {
         <AlertTriangle className="h-16 w-16 text-destructive mb-4" />
         <h2 className="text-xl font-semibold text-destructive mb-2">একটি সমস্যা হয়েছে</h2>
         <p className="text-muted-foreground mb-6">{error}</p>
-        <Button onClick={() => window.location.reload()} variant="outline">পুনরায় চেষ্টা করুন</Button>
+        <Button onClick={() => window.location.reload()} variant="outline" className="border-primary text-primary hover:bg-primary/10">পুনরায় চেষ্টা করুন</Button>
       </div>
     );
   }
@@ -89,24 +110,56 @@ export default function HomePage() {
           </Button>
         </div>
       </section>
-
-      <h1 id="products-section" className="text-3xl font-headline font-bold mb-8 text-center text-primary">আমাদের পণ্যসমূহ</h1>
-      {products.length === 0 && !loadingProducts ? (
-        <div className="text-center py-10">
-          <p className="text-xl text-muted-foreground">এখনও কোনো পণ্য যোগ করা হয়নি।</p>
-          {currentUser?.email === ADMIN_EMAIL && (
-            <p className="mt-2">অ্যাডমিন প্যানেল থেকে নতুন পণ্য যোগ করুন।</p>
+      
+      <div id="products-section" className="mb-8">
+        <Card className="shadow-md">
+          <CardContent className="p-4 md:p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+            <h1 className="text-2xl md:text-3xl font-headline font-bold text-primary m-0">
+              আমাদের পণ্যসমূহ
+            </h1>
+            {uniqueCategories.length > 0 && (
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <Filter className="h-5 w-5 text-muted-foreground" />
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger className="w-full md:w-[200px]">
+                    <SelectValue placeholder="ক্যাটাগরি বাছাই করুন" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">সকল ক্যাটাগরি</SelectItem>
+                    {uniqueCategories.map(category => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+      
+      {filteredProducts.length === 0 && !loadingProducts ? (
+        <div className="text-center py-10 bg-card p-6 rounded-lg shadow">
+          <p className="text-xl text-muted-foreground mb-2">
+            {selectedCategory === "all" ? "এখনও কোনো পণ্য যোগ করা হয়নি।" : `দুঃখিত, "${selectedCategory}" ক্যাটাগরিতে কোনো পণ্য পাওয়া যায়নি।`}
+          </p>
+          {currentUser?.email === ADMIN_EMAIL && selectedCategory === "all" && (
+            <p className="mt-1 text-sm">অ্যাডমিন প্যানেল থেকে নতুন পণ্য যোগ করুন।</p>
+          )}
+          {selectedCategory !== "all" && (
+             <Button variant="link" onClick={() => setSelectedCategory("all")}>সকল ক্যাটাগরি দেখুন</Button>
           )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {products.map((product) => (
+          {filteredProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>
       )}
 
-      {!authLoading && currentUser && currentUser.email === ADMIN_EMAIL && (
+      {!authLoading && currentUser && currentUser.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() && (
         <div className="mt-12 mb-8 text-center">
           <Button asChild variant="outline" size="lg" className="border-primary text-primary hover:bg-primary/10">
             <Link href="/admin" className="flex items-center">
@@ -119,3 +172,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    

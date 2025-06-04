@@ -1,7 +1,8 @@
+
 "use client";
 
 import Link from 'next/link';
-import { ShoppingCart, User as UserIcon, LogIn, UserPlus, LogOut, ShieldCheck } from 'lucide-react';
+import { ShoppingCart, User as UserIcon, LogIn, UserPlus, LogOut, ShieldCheck, UserCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
@@ -17,41 +18,44 @@ export default function Header() {
         <Link href="/" className="text-2xl font-headline font-bold hover:opacity-80 transition-opacity">
           বাংলা শপ
         </Link>
-        <nav className="flex items-center space-x-4 md:space-x-6">
-          <Link href="/" className="hover:text-accent transition-colors font-medium">
+        <nav className="flex items-center space-x-3 md:space-x-4">
+          <Link href="/" className="hover:text-accent transition-colors font-medium text-sm md:text-base">
             হোম
           </Link>
-          <Link href="/cart" className="relative hover:text-accent transition-colors font-medium flex items-center">
+          <Link href="/cart" className="relative hover:text-accent transition-colors font-medium flex items-center text-sm md:text-base">
             <ShoppingCart className="h-5 w-5 mr-1" />
             কার্ট
             {itemCount > 0 && (
               <Badge variant="destructive" className="absolute -top-2 -right-3 text-xs px-1.5 py-0.5 h-5 min-w-[20px] flex items-center justify-center">
-                {itemCount}
+                {itemCount.toLocaleString('bn-BD')}
               </Badge>
             )}
           </Link>
           {currentUser ? (
             <>
-              <span className="hidden md:inline font-medium">স্বাগতম, {currentUser.displayName || currentUser.email?.split('@')[0]}</span>
-              <Button variant="ghost" size="sm" onClick={logout} className="hover:bg-primary-foreground hover:text-primary text-primary-foreground">
-                <LogOut className="h-4 w-4 mr-1" />
-                লগআউট
-              </Button>
-              {/* Simple check for admin role, replace with actual role check */}
-              {currentUser.email === 'admin@banglashop.com' && (
-                 <Link href="/admin" className="hover:text-accent transition-colors font-medium flex items-center">
-                    <ShieldCheck className="h-5 w-5 mr-1" />
-                    অ্যাডমিন
+              <Link href="/profile" className="hover:text-accent transition-colors font-medium flex items-center text-sm md:text-base">
+                 <UserCircle className="h-5 w-5 mr-1 md:mr-2" />
+                 <span className="hidden md:inline">প্রোফাইল</span>
+              </Link>
+             
+              {currentUser.email?.toLowerCase() === 'admin@banglashop.com' && (
+                 <Link href="/admin" className="hover:text-accent transition-colors font-medium flex items-center text-sm md:text-base">
+                    <ShieldCheck className="h-5 w-5 mr-1 md:mr-2" />
+                    <span className="hidden md:inline">অ্যাডমিন</span>
                  </Link>
               )}
+               <Button variant="ghost" size="sm" onClick={logout} className="hover:bg-primary-foreground/20 hover:text-accent text-primary-foreground text-sm md:text-base px-2 md:px-3">
+                <LogOut className="h-4 w-4 md:mr-1" />
+                <span className="hidden md:inline">লগআউট</span>
+              </Button>
             </>
           ) : (
             <>
-              <Link href="/login" className="hover:text-accent transition-colors font-medium flex items-center">
+              <Link href="/login" className="hover:text-accent transition-colors font-medium flex items-center text-sm md:text-base">
                 <LogIn className="h-5 w-5 mr-1" />
                 লগইন
               </Link>
-              <Link href="/register" className="hover:text-accent transition-colors font-medium flex items-center">
+              <Link href="/register" className="hover:text-accent transition-colors font-medium flex items-center text-sm md:text-base">
                 <UserPlus className="h-5 w-5 mr-1" />
                 রেজিস্টার
               </Link>
@@ -62,3 +66,5 @@ export default function Header() {
     </header>
   );
 }
+
+    
