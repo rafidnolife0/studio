@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -13,8 +14,14 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'phpstack-924353-3259330.cloudwaysapps.com',
-        port: '', // Optional: specify if not standard port 80/443
-        pathname: '/public/uploads/all/**', // Optional: specify path pattern
+        port: '',
+        pathname: '/public/uploads/all/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'placehold.co',
+        port: '',
+        pathname: '/**', // Allow any path on placehold.co
       },
     ],
   },
