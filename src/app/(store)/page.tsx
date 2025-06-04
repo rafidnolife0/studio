@@ -5,11 +5,12 @@ import type { Product } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ShieldCheck, Loader2, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, Loader2, AlertTriangle, ShoppingBag } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
 
 export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -22,7 +23,7 @@ export default function HomePage() {
   useEffect(() => {
     setLoadingProducts(true);
     const productsCollectionRef = collection(db, "products");
-    const q = query(productsCollectionRef, orderBy("createdAt", "desc")); // Assuming you have a createdAt field
+    const q = query(productsCollectionRef, orderBy("createdAt", "desc"));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const productsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
@@ -36,12 +37,12 @@ export default function HomePage() {
       setLoadingProducts(false);
     });
 
-    return () => unsubscribe(); // Cleanup listener on component unmount
+    return () => unsubscribe();
   }, [toast]);
 
   if (loadingProducts) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
         <Loader2 className="h-16 w-16 animate-spin text-primary mb-4" />
         <p className="text-lg text-muted-foreground">পণ্য লোড হচ্ছে...</p>
       </div>
@@ -50,7 +51,7 @@ export default function HomePage() {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] text-center">
         <AlertTriangle className="h-16 w-16 text-destructive mb-4" />
         <h2 className="text-xl font-semibold text-destructive mb-2">একটি সমস্যা হয়েছে</h2>
         <p className="text-muted-foreground mb-6">{error}</p>
@@ -61,7 +62,35 @@ export default function HomePage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-headline font-bold mb-8 text-center text-primary">আমাদের পণ্যসমূহ</h1>
+      {/* Hero Section */}
+      <section className="relative bg-gradient-to-r from-primary/10 via-background to-accent/10 py-16 md:py-24 rounded-lg shadow-lg mb-12 overflow-hidden">
+        <div className="absolute inset-0 opacity-5">
+            <Image 
+                src="https://placehold.co/1200x400.png" 
+                alt="Hero Background" 
+                layout="fill" 
+                objectFit="cover" 
+                className="pointer-events-none"
+                data-ai-hint="shopping abstract background" 
+            />
+        </div>
+        <div className="container mx-auto px-4 relative z-10 text-center">
+          <h1 className="text-4xl md:text-5xl font-headline font-bold text-primary mb-4">
+            স্বাগতম বাংলা শপে!
+          </h1>
+          <p className="text-lg md:text-xl text-foreground mb-8 max-w-2xl mx-auto">
+            আপনার বিশ্বস্ত অনলাইন শপিং হাব – সেরা সব পণ্য, সেরা দামে!
+          </p>
+          <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 text-lg py-3 px-8 shadow-md transition-transform hover:scale-105">
+            <Link href="#products-section" className="flex items-center">
+              <ShoppingBag className="mr-2 h-5 w-5" />
+              পণ্য দেখুন
+            </Link>
+          </Button>
+        </div>
+      </section>
+
+      <h1 id="products-section" className="text-3xl font-headline font-bold mb-8 text-center text-primary">আমাদের পণ্যসমূহ</h1>
       {products.length === 0 && !loadingProducts ? (
         <div className="text-center py-10">
           <p className="text-xl text-muted-foreground">এখনও কোনো পণ্য যোগ করা হয়নি।</p>
