@@ -14,6 +14,7 @@ import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import Script from 'next/script';
 
 
 export default function HomePage() {
@@ -134,21 +135,14 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Advertisement Section */}
-      <section className="my-12 flex justify-center">
-        <a href="https://otieu.com/4/9416953" target="_blank" rel="noopener noreferrer" aria-label="Advertisement">
-          <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow w-full max-w-3xl md:max-w-4xl">
-            <div className="aspect-[728/90] relative w-full">
-              <Image
-                src="https://placehold.co/728x90.png?text=Advertisement"
-                alt="Advertisement"
-                layout="fill"
-                objectFit="cover"
-                data-ai-hint="advertisement banner"
-              />
-            </div>
-          </Card>
-        </a>
+      {/* Ad Slot 2: Homepage Mid-Section */}
+      <section className="my-12 flex justify-center ad-container-homepage-mid">
+         <Script
+            src="https://fpyf8.com/88/tag.min.js"
+            strategy="lazyOnload"
+            data-zone="150831"
+            data-cfasync="false"
+          />
       </section>
       
       <div id="products-section" className="mb-10">
@@ -251,5 +245,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-    

@@ -9,6 +9,7 @@ import { useCart } from '@/contexts/CartContext';
 import { Trash2, MinusSquare, PlusSquare, ShoppingBag } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import Script from 'next/script';
 
 const ShoppingCartIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
@@ -34,6 +35,16 @@ export default function CartPage() {
     <div className="max-w-6xl mx-auto">
       <h1 className="text-3xl md:text-4xl font-headline font-bold mb-8 text-primary">আপনার শপিং কার্ট</h1>
       
+      {/* Ad Slot 4: Cart Page - Above Cart Items/Summary Grid */}
+      <section className="my-8 flex justify-center ad-container-cart-page">
+        <Script
+          src="https://fpyf8.com/88/tag.min.js"
+          strategy="lazyOnload"
+          data-zone="150831"
+          data-cfasync="false"
+        />
+      </section>
+
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
           {cartItems.map((item) => (

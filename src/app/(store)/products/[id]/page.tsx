@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import Script from 'next/script';
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -219,17 +220,25 @@ export default function ProductDetailPage() {
 
       <Separator className="my-10"/>
 
-      {/* Related Products Placeholder */}
+      {/* Related Products and Ad Section */}
       <section className="mt-12">
-        <h2 className="text-2xl font-headline font-bold mb-6 text-primary">সম্পর্কিত পণ্যসমূহ</h2>
-        <Card className="shadow-md">
-          <CardContent className="p-10 text-center">
-            <Info className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">এই পণ্যের সাথে সম্পর্কিত অন্যান্য পণ্য শীঘ্রই এখানে দেখানো হবে।</p>
+        <h2 className="text-2xl font-headline font-bold mb-6 text-primary">সম্পর্কিত পণ্যসমূহ ও বিজ্ঞাপন</h2>
+        <Card className="shadow-md ad-container-product-related">
+          <CardContent className="p-6 text-center">
+            {/* Ad Slot 3: Product Detail Page - Related Products Area */}
+            <div className="mb-6"> {/* Added margin bottom for spacing if ad appears */}
+              <Script
+                src="https://fpyf8.com/88/tag.min.js"
+                strategy="lazyOnload"
+                data-zone="150831"
+                data-cfasync="false"
+              />
+            </div>
+            <Info className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
+            <p className="text-muted-foreground text-sm">এই পণ্যের সাথে সম্পর্কিত অন্যান্য পণ্য শীঘ্রই এখানে দেখানো হবে।</p>
           </CardContent>
         </Card>
       </section>
     </div>
   );
 }
-
