@@ -133,6 +133,23 @@ export default function HomePage() {
           </Button>
         </div>
       </section>
+
+      {/* Advertisement Section */}
+      <section className="my-12 flex justify-center">
+        <a href="https://otieu.com/4/9416953" target="_blank" rel="noopener noreferrer" aria-label="Advertisement">
+          <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow w-full max-w-3xl md:max-w-4xl">
+            <div className="aspect-[728/90] relative w-full">
+              <Image
+                src="https://placehold.co/728x90.png?text=Advertisement"
+                alt="Advertisement"
+                layout="fill"
+                objectFit="cover"
+                data-ai-hint="advertisement banner"
+              />
+            </div>
+          </Card>
+        </a>
+      </section>
       
       <div id="products-section" className="mb-10">
         <Card className="shadow-lg border-t-4 border-primary rounded-xl">
@@ -234,3 +251,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
