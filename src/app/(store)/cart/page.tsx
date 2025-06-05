@@ -36,10 +36,10 @@ export default function CartPage() {
       <h1 className="text-3xl md:text-4xl font-headline font-bold mb-8 text-primary">আপনার শপিং কার্ট</h1>
       
       {/* Ad Slot 4: Cart Page - Above Cart Items/Summary Grid */}
-      <section className="my-8 flex justify-center ad-container-cart-page">
+      <section className="my-8 flex justify-center ad-container-cart-page min-h-[50px] bg-muted/10">
         <Script
           src="https://fpyf8.com/88/tag.min.js"
-          strategy="lazyOnload"
+          strategy="afterInteractive"
           data-zone="150831"
           data-cfasync="false"
         />
@@ -137,3 +137,4 @@ export default function CartPage() {
     </div>
   );
 }
+

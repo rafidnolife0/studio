@@ -223,13 +223,13 @@ export default function ProductDetailPage() {
       {/* Related Products and Ad Section */}
       <section className="mt-12">
         <h2 className="text-2xl font-headline font-bold mb-6 text-primary">সম্পর্কিত পণ্যসমূহ ও বিজ্ঞাপন</h2>
-        <Card className="shadow-md ad-container-product-related">
+        <Card className="shadow-md ad-container-product-related min-h-[50px] bg-muted/10">
           <CardContent className="p-6 text-center">
             {/* Ad Slot 3: Product Detail Page - Related Products Area */}
             <div className="mb-6"> {/* Added margin bottom for spacing if ad appears */}
               <Script
                 src="https://fpyf8.com/88/tag.min.js"
-                strategy="lazyOnload"
+                strategy="afterInteractive"
                 data-zone="150831"
                 data-cfasync="false"
               />
@@ -242,3 +242,4 @@ export default function ProductDetailPage() {
     </div>
   );
 }
+

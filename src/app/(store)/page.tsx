@@ -136,10 +136,10 @@ export default function HomePage() {
       </section>
 
       {/* Ad Slot 2: Homepage Mid-Section */}
-      <section className="my-12 flex justify-center ad-container-homepage-mid">
+      <section className="my-12 flex justify-center ad-container-homepage-mid min-h-[50px] bg-muted/10">
          <Script
             src="https://fpyf8.com/88/tag.min.js"
-            strategy="lazyOnload"
+            strategy="afterInteractive"
             data-zone="150831"
             data-cfasync="false"
           />
@@ -245,3 +245,4 @@ export default function HomePage() {
     </div>
   );
 }
+

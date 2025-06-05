@@ -9,10 +9,10 @@ export default function Footer() {
         <p className="text-xs mt-1">একটি বিশ্বস্ত অনলাইন শপিং প্ল্যাটফর্ম</p>
         
         {/* Ad Slot 5: Footer */}
-        <div className="mt-4 ad-container-footer flex justify-center">
+        <div className="mt-4 ad-container-footer flex justify-center min-h-[50px] bg-muted/10">
            <Script
             src="https://fpyf8.com/88/tag.min.js"
-            strategy="lazyOnload"
+            strategy="afterInteractive"
             data-zone="150831"
             data-cfasync="false"
           />
@@ -21,3 +21,4 @@ export default function Footer() {
     </footer>
   );
 }
+
