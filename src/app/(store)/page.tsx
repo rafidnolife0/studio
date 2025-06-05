@@ -25,7 +25,8 @@ export default function HomePage() {
   const { toast } = useToast();
   const ADMIN_EMAIL = "admin@banglashop.com";
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState<string>(""); // This state triggers filtering
+  const [searchInput, setSearchInput] = useState<string>(""); // This state is for the input field
 
   useEffect(() => {
     setLoadingProducts(true);
@@ -73,6 +74,16 @@ export default function HomePage() {
     }
     return tempProducts;
   }, [products, selectedCategory, searchTerm]);
+
+  const handleSearchSubmit = () => {
+    setSearchTerm(searchInput);
+  };
+
+  const handleKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      handleSearchSubmit();
+    }
+  };
 
   if (loadingProducts) {
     return (
@@ -156,15 +167,22 @@ export default function HomePage() {
             </div>
           </CardHeader>
           <CardContent className="pt-4 pb-6 space-y-6">
-            <div className="relative">
-              <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
-              <Input
-                type="search"
-                placeholder="পণ্য খুঁজুন (যেমন: শার্ট, মোবাইল...)"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 text-base rounded-lg border-2 border-border focus:border-primary shadow-sm transition-colors focus:ring-1 focus:ring-primary"
-              />
+            <div className="flex items-stretch gap-2">
+              <div className="relative flex-grow">
+                <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
+                <Input
+                  type="search"
+                  placeholder="পণ্য খুঁজুন (যেমন: শার্ট, মোবাইল...)"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  className="w-full pl-12 pr-4 py-3 text-base rounded-lg border-2 border-border focus:border-primary shadow-sm transition-colors focus:ring-1 focus:ring-primary h-full"
+                />
+              </div>
+              <Button onClick={handleSearchSubmit} className="bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-3 text-base rounded-lg shadow-md h-full">
+                <SearchIcon className="mr-0 md:mr-2 h-5 w-5" />
+                <span className="hidden md:inline">খুঁজুন</span>
+              </Button>
             </div>
 
             {uniqueCategories.length > 0 && (
@@ -218,7 +236,7 @@ export default function HomePage() {
               <p className="mt-1 text-sm text-muted-foreground">অ্যাডমিন প্যানেল থেকে নতুন পণ্য যোগ করুন।</p>
             )}
             {(selectedCategory !== "all" || searchTerm) && ( // Show if any filter is active
-               <Button variant="link" onClick={() => { setSelectedCategory("all"); setSearchTerm(""); }} className="text-accent text-base">
+               <Button variant="link" onClick={() => { setSelectedCategory("all"); setSearchTerm(""); setSearchInput(""); }} className="text-accent text-base">
                  সকল ফিল্টার পরিষ্কার করুন
                </Button>
             )}
