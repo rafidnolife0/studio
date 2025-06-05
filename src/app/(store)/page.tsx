@@ -146,13 +146,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Ad Slot 2: Homepage Mid-Section */}
+      {/* Ad Slot 2: Homepage Mid-Section - Updated to Social Bar */}
       <section className="my-12 flex justify-center ad-container-homepage-mid min-h-[50px] bg-muted/10">
          <Script
-            src="https://fpyf8.com/88/tag.min.js"
+            src="//personalengage.com/e0/6a/a6/e06aa63f316c66acd005cbe3ead506ee.js"
             strategy="afterInteractive"
-            data-zone="150831"
-            data-cfasync="false"
           />
       </section>
       
@@ -263,4 +261,3 @@ export default function HomePage() {
     </div>
   );
 }
-

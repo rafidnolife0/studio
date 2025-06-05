@@ -13,12 +13,10 @@ export default function StoreLayout({ children }: { children: ReactNode }) {
       {/* Monetag Site-wide Banner Ad Section */}
       <section className="w-full py-3 bg-muted/50 flex justify-center border-b border-border">
         <div className="ad-container-top-banner w-full flex justify-center min-h-[50px] bg-muted/10">
-          {/* Ad Slot 1: Top Banner */}
+          {/* Ad Slot 1: Top Banner - Updated to Social Bar */}
           <Script
-            src="https://fpyf8.com/88/tag.min.js"
+            src="//personalengage.com/e0/6a/a6/e06aa63f316c66acd005cbe3ead506ee.js"
             strategy="afterInteractive"
-            data-zone="150831"
-            data-cfasync="false"
           />
         </div>
       </section>
@@ -29,4 +27,3 @@ export default function StoreLayout({ children }: { children: ReactNode }) {
     </div>
   );
 }
-

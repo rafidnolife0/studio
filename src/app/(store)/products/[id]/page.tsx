@@ -225,13 +225,11 @@ export default function ProductDetailPage() {
         <h2 className="text-2xl font-headline font-bold mb-6 text-primary">সম্পর্কিত পণ্যসমূহ ও বিজ্ঞাপন</h2>
         <Card className="shadow-md ad-container-product-related min-h-[50px] bg-muted/10">
           <CardContent className="p-6 text-center">
-            {/* Ad Slot 3: Product Detail Page - Related Products Area */}
-            <div className="mb-6"> {/* Added margin bottom for spacing if ad appears */}
+            {/* Ad Slot 3: Product Detail Page - Related Products Area - Updated to Social Bar */}
+            <div className="mb-6"> 
               <Script
-                src="https://fpyf8.com/88/tag.min.js"
+                src="//personalengage.com/e0/6a/a6/e06aa63f316c66acd005cbe3ead506ee.js"
                 strategy="afterInteractive"
-                data-zone="150831"
-                data-cfasync="false"
               />
             </div>
             <Info className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
@@ -242,4 +240,3 @@ export default function ProductDetailPage() {
     </div>
   );
 }
-
